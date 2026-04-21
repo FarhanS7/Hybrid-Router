@@ -6,7 +6,8 @@ const logger = createChildLogger("workflow:finalize");
 
 /**
  * Node: finalizeResponse
- * Assembles the final HarResponse from the workflow state.
+ * Assembles the final HarResponse from the workflow state,
+ * including resilience metadata in case of fallback or failure.
  */
 export async function finalizeResponseNode(state: HarWorkflowStateType) {
   logger.info({ node: "finalizeResponse" }, "Entering finalizeResponseNode");
@@ -23,14 +24,27 @@ export async function finalizeResponseNode(state: HarWorkflowStateType) {
       route: state.route,
       result: state.providerResult.output,
       model: state.providerResult.model,
-      latencyMs: state.providerResult.latencyMs, // Simplified latency for Phase 3
+      latencyMs: state.providerResult.latencyMs,
       success: state.providerResult.success,
-      fallbackUsed: false,
+      fallbackUsed: !!state.fallbackUsed,
+      // Error details if any (from resilience layer)
+      errorType: state.errorType || state.providerResult.errorType,
+      errorMessage: state.errorMessage || state.providerResult.errorMessage,
     };
     
+    // Log resonance specific details
+    if (state.fallbackUsed || !state.providerResult.success) {
+      logger.info({
+        fallbackUsed: state.fallbackUsed,
+        retryCount: state.retryCount,
+        success: state.providerResult.success,
+        errorType: state.errorType
+      }, "Finalizing with resilience events");
+    }
+
     return {
       finalResponse,
-      logs: ["Final response assembled"],
+      logs: ["Final response assembled with resilience metadata"],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Finalization failed";
