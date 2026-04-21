@@ -20,6 +20,17 @@ export interface Intent {
   confidence: number;
 }
 
+// ─── Error ───────────────────────────────────────────────
+export type ErrorType =
+  | "TIMEOUT"
+  | "RATE_LIMIT"
+  | "PROVIDER_DOWN"
+  | "NETWORK_ERROR"
+  | "BAD_REQUEST"
+  | "LOCAL_UNAVAILABLE"
+  | "CLASSIFIER_FAILURE"
+  | "UNKNOWN";
+
 // ─── Provider ────────────────────────────────────────────
 export interface ProviderResult {
   provider: "LOCAL" | "CLOUD";
@@ -27,7 +38,7 @@ export interface ProviderResult {
   output: string;
   latencyMs: number;
   success: boolean;
-  errorType?: string;
+  errorType?: ErrorType;
   errorMessage?: string;
 }
 
@@ -42,6 +53,8 @@ export interface HarResponse {
   latencyMs: number;
   success: boolean;
   fallbackUsed: boolean;
+  errorType?: ErrorType;
+  errorMessage?: string;
 }
 
 // ─── Request ─────────────────────────────────────────────
