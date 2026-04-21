@@ -1,7 +1,7 @@
 import express from "express";
 import { env } from "@har/config";
 import { createChildLogger } from "@har/logger";
-import { processPrompt } from "./services/processPrompt.js";
+import { runWorkflow } from "./services/runWorkflow.js";
 
 const logger = createChildLogger("orchestrator");
 const app = express();
@@ -24,7 +24,7 @@ app.post("/orchestrate", async (req, res) => {
   }
 
   try {
-    const result = await processPrompt(prompt);
+    const result = await runWorkflow(prompt);
     res.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
