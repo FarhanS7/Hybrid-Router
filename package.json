@@ -1,0 +1,29 @@
+{
+  "name": "har-monorepo",
+  "version": "1.0.0",
+  "description": "Hybrid AI Router (HAR) - A modular monorepo for intelligent AI prompt routing.",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:*\"",
+    "dev:gateway": "npm --workspace @har/gateway run dev",
+    "dev:orchestrator": "npm --workspace @har/orchestrator run dev",
+    "dev:intent": "npm --workspace @har/intent-service run dev",
+    "dev:local": "npm --workspace @har/local-llm run dev",
+    "dev:cloud": "npm --workspace @har/cloud-llm run dev",
+    "dev:web": "npm --workspace @har/web run dev",
+    "dev:cli": "npm --workspace @har/cli run dev",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test --workspaces"
+  },
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  }
+}

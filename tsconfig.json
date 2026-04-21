@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@har/shared": ["packages/shared/src/index"],
+      "@har/config": ["packages/config/src/index"],
+      "@har/logger": ["packages/logger/src/index"]
+    }
+  },
+  "include": [
+    "apps/**/*",
+    "services/**/*",
+    "packages/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "apps/web/.next"
+  ]
+}

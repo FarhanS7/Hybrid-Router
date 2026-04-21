@@ -1,0 +1,26 @@
+{
+  "name": "@har/cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "har": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "link-local": "npm link"
+  },
+  "dependencies": {
+    "@har/config": "*",
+    "@har/logger": "*",
+    "@har/shared": "*",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "typescript": "^5.3.3"
+  }
+}
