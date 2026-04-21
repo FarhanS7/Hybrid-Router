@@ -14,6 +14,8 @@
     "@har/config": "*",
     "@har/logger": "*",
     "@har/shared": "*",
+    "@langchain/core": "^1.1.40",
+    "@langchain/langgraph": "^1.2.9",
     "express": "^4.18.2"
   },
   "devDependencies": {
