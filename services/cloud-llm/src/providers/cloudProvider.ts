@@ -40,15 +40,15 @@ async function generateWithGemini(prompt: string): Promise<ProviderResult> {
       return {
         provider: "CLOUD",
         model,
-        output: "",
-        latencyMs,
+        output: "Gemini error",
+        latencyMs: latencyMs,
         success: false,
-        errorType: "PROVIDER_ERROR",
+        errorType: "PROVIDER_DOWN",
         errorMessage: errorMsg,
       };
     }
 
-    const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
     logger.info({ model, latencyMs }, "Gemini generation complete");
 
     return {
@@ -60,7 +60,8 @@ async function generateWithGemini(prompt: string): Promise<ProviderResult> {
     };
   } catch (error) {
     const latencyMs = Date.now() - start;
-    const message = error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Cloud call failed";
+    const errorType = message.includes("timeout") ? "TIMEOUT" : "NETWORK_ERROR";
 
     logger.error({ error: message, latencyMs }, "Cloud generation failed");
 
@@ -70,7 +71,7 @@ async function generateWithGemini(prompt: string): Promise<ProviderResult> {
       output: "",
       latencyMs,
       success: false,
-      errorType: message.includes("timeout") ? "TIMEOUT" : "CONNECTION_ERROR",
+      errorType,
       errorMessage: message,
     };
   }

@@ -8,6 +8,7 @@ interface OllamaGenerateResponse {
   response: string;
   done: boolean;
   model: string;
+  error?: string;
 }
 
 /**
@@ -38,13 +39,25 @@ export async function generateWithOllama(prompt: string): Promise<ProviderResult
         output: "",
         latencyMs: Date.now() - start,
         success: false,
-        errorType: "PROVIDER_ERROR",
+        errorType: "PROVIDER_DOWN",
         errorMessage: `Ollama returned ${response.status}: ${errorText}`,
       };
     }
 
     const data = (await response.json()) as OllamaGenerateResponse;
     const latencyMs = Date.now() - start;
+
+    if (data.error) {
+      return {
+        provider: "LOCAL",
+        model: data.model || env.OLLAMA_MODEL,
+        output: "",
+        latencyMs,
+        success: false,
+        errorType: "PROVIDER_DOWN",
+        errorMessage: data.error,
+      };
+    }
 
     logger.info({ model: data.model, latencyMs }, "Ollama generation complete");
 
@@ -67,7 +80,7 @@ export async function generateWithOllama(prompt: string): Promise<ProviderResult
       output: "",
       latencyMs,
       success: false,
-      errorType: message.includes("timeout") ? "TIMEOUT" : "CONNECTION_ERROR",
+      errorType: message.includes("timeout") ? "TIMEOUT" : "NETWORK_ERROR",
       errorMessage: message,
     };
   }
