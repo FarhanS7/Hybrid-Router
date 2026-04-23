@@ -1,5 +1,5 @@
 import { createChildLogger } from "@har/logger";
-import type { ExecutionPlan, ExecutionStep, Intent, ProviderResult } from "@har/shared";
+import type { ExecutionPlan, ExecutionStep, Intent, ProviderResult, HybridStepResult } from "@har/shared";
 import { generateLocal } from "../clients/localLlmClient.js";
 import { generateCloud } from "../clients/cloudLlmClient.js";
 import { executeWithResilience, ResilientExecutionResult } from "../resilience/executeWithResilience.js";
@@ -27,6 +27,7 @@ const STEP_PROMPTS: Record<string, (input: string) => string> = {
 export interface PlanExecutionResult {
   finalResult: ProviderResult;
   stepResults: ProviderResult[];
+  hybridSteps?: HybridStepResult[];
   fallbackUsed: boolean;
   totalLatencyMs: number;
 }
@@ -81,6 +82,7 @@ async function executeHybridPlan(
   intent: Intent
 ): Promise<PlanExecutionResult> {
   const stepResults: ProviderResult[] = [];
+  const hybridSteps: HybridStepResult[] = [];
   let currentInput = originalPrompt;
   let anyFallbackUsed = false;
   let totalLatency = 0;
@@ -89,7 +91,6 @@ async function executeHybridPlan(
     const step = steps[i];
     const isLastStep = i === steps.length - 1;
 
-    // Shape the prompt for this step type
     const shapedPrompt = STEP_PROMPTS[step.step]
       ? STEP_PROMPTS[step.step](currentInput)
       : currentInput;
@@ -100,9 +101,6 @@ async function executeHybridPlan(
       provider: step.provider,
     }, `Executing hybrid step ${i + 1}/${steps.length}`);
 
-    // Privacy guard: if this is a CLOUD step and the data is sensitive,
-    // we MUST have preprocessed locally first (previous step output).
-    // If this is the first step and it's CLOUD + sensitive, that's a planner error.
     if (step.provider === "CLOUD" && intent.sensitive && i === 0) {
       logger.error("Privacy violation: cannot send sensitive prompt to cloud as first step");
       const failResult: ProviderResult = {
@@ -114,15 +112,16 @@ async function executeHybridPlan(
         errorMessage: "Privacy policy violation in hybrid plan",
       };
       stepResults.push(failResult);
+      hybridSteps.push({ step: step.step, provider: step.provider, success: false, latencyMs: 0 });
       return {
         finalResult: failResult,
         stepResults,
+        hybridSteps,
         fallbackUsed: false,
         totalLatencyMs: totalLatency,
       };
     }
 
-    // Execute with resilience
     let resilientResult: ResilientExecutionResult;
     try {
       resilientResult = await executeWithResilience(step.provider, intent, shapedPrompt, adapters);
@@ -139,9 +138,11 @@ async function executeHybridPlan(
         errorMessage: message,
       };
       stepResults.push(failResult);
+      hybridSteps.push({ step: step.step, provider: step.provider, success: false, latencyMs: 0 });
       return {
         finalResult: failResult,
         stepResults,
+        hybridSteps,
         fallbackUsed: anyFallbackUsed,
         totalLatencyMs: totalLatency,
       };
@@ -149,24 +150,48 @@ async function executeHybridPlan(
 
     const { result, resilience } = resilientResult;
     stepResults.push(result);
+    hybridSteps.push({
+      step: step.step,
+      provider: step.provider,
+      success: result.success,
+      latencyMs: result.latencyMs,
+    });
     totalLatency += result.latencyMs;
 
     if (resilience.fallbackUsed) {
       anyFallbackUsed = true;
     }
 
-    // If this step failed even after resilience, stop the pipeline
+    // Graceful Degradation Logic
     if (!result.success) {
-      logger.warn({ stepIndex: i, stepType: step.step }, "Hybrid step failed after resilience, stopping pipeline");
+      if (step.step === "PREPROCESS" && !intent.sensitive) {
+        logger.warn("PREPROCESS failed, but intent is not sensitive. Degrading to direct CLOUD reason.");
+        // We skip setting currentInput, effectively passing originalPrompt to the next step
+        continue;
+      }
+      if (step.step === "POSTPROCESS" && i > 0) {
+        logger.warn("POSTPROCESS failed, but previous step succeeded. Returning previous successful result.");
+        // The last successful step was REASON, which is at i - 1
+        const previousResult = stepResults[i - 1];
+        return {
+          finalResult: { ...previousResult, latencyMs: totalLatency },
+          stepResults,
+          hybridSteps,
+          fallbackUsed: anyFallbackUsed,
+          totalLatencyMs: totalLatency,
+        };
+      }
+
+      logger.warn({ stepIndex: i, stepType: step.step }, "Hybrid step failed, stopping pipeline");
       return {
         finalResult: result,
         stepResults,
+        hybridSteps,
         fallbackUsed: anyFallbackUsed,
         totalLatencyMs: totalLatency,
       };
     }
 
-    // Pass output to next step (unless this is the last step)
     if (!isLastStep) {
       currentInput = result.output;
     }
@@ -180,15 +205,15 @@ async function executeHybridPlan(
     }, `Hybrid step ${i + 1} complete`);
   }
 
-  // The final step's result is the overall result
   const finalResult = stepResults[stepResults.length - 1];
 
   return {
     finalResult: {
       ...finalResult,
-      latencyMs: totalLatency, // Total aggregated latency
+      latencyMs: totalLatency,
     },
     stepResults,
+    hybridSteps,
     fallbackUsed: anyFallbackUsed,
     totalLatencyMs: totalLatency,
   };
