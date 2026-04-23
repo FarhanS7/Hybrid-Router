@@ -25,9 +25,24 @@ const COMPLEX_TASKS: TaskType[] = ["architecture", "debugging", "reasoning"];
 
 // ─── Helpers ─────────────────────────────────────────────
 
+// ─── Regex patterns for PII ──────────────────────────────
+const PII_PATTERNS = {
+  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+  phone: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
+  creditCard: /\b(?:\d[ -]*?){13,16}\b/g,
+  ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
+};
+
 function detectSensitivity(prompt: string): boolean {
   const lower = prompt.toLowerCase();
-  return SENSITIVE_KEYWORDS.some((kw) => lower.includes(kw));
+  
+  // 1. Keyword match
+  const hasKeyword = SENSITIVE_KEYWORDS.some((kw) => lower.includes(kw));
+  if (hasKeyword) return true;
+
+  // 2. Pattern match
+  const hasPattern = Object.values(PII_PATTERNS).some((regex) => regex.test(prompt));
+  return hasPattern;
 }
 
 function detectTaskType(prompt: string): { taskType: TaskType; confidence: number } {

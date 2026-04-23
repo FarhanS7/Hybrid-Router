@@ -17,7 +17,7 @@ const adapters = {
  */
 const STEP_PROMPTS: Record<string, (input: string) => string> = {
   PREPROCESS: (input) =>
-    `Clean up, restructure, and improve the clarity of the following text. Remove informal language, fix grammar, and make it well-structured. Only output the improved text, nothing else.\n\nInput:\n${input}`,
+    `Clean up, restructure, and REDACT all sensitive information from the following text. Replace any PII, names, secrets, or specific identifiers with generic placeholders like [REDACTED]. Only output the improved and redacted text, nothing else.\n\nInput:\n${input}`,
   REASON: (input) =>
     input, // Pass through — the preprocessed prompt IS the reasoning input
   POSTPROCESS: (input) =>

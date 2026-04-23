@@ -24,11 +24,11 @@ app.post("/classify", (req, res) => {
   }
 
   const intent = classifyIntent(prompt);
-  logger.info({ prompt, intent }, "Intent classified");
+  logger.info({ intent }, "Intent classified");
 
   res.json(intent);
 });
 
-app.listen(port, () => {
-  logger.info(`Intent service listening on port ${port}`);
+app.listen(port, "127.0.0.1", () => {
+  logger.info(`Intent service listening on 127.0.0.1:${port}`);
 });
