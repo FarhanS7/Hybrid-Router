@@ -6,27 +6,22 @@ const logger = createChildLogger("workflow:route");
 
 /**
  * Node: decideRoute
- * Applies the routing policy based on detected intent.
+ * Applies the V2 routing policy (LOCAL / CLOUD / HYBRID).
  */
 export async function decideRouteNode(state: HarWorkflowStateType) {
   logger.info({ node: "decideRoute" }, "Entering decideRouteNode");
-  
+
   if (!state.intent) {
     throw new Error("Missing intent for routing decision");
   }
-  
-  try {
-    const route = routePrompt(state.intent);
-    
-    logger.info({ route }, "Route decided");
-    
-    return {
-      route,
-      logs: [`Route decided: ${route}`],
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Routing decision failed";
-    logger.error({ error: message }, "Routing decision failed");
-    throw error;
-  }
+
+  const prompt = state.normalizedPrompt || state.prompt;
+  const route = routePrompt(state.intent, prompt);
+
+  logger.info({ stage: "route_selected", route }, "Route decided");
+
+  return {
+    route,
+    logs: [`Route decided: ${route}`],
+  };
 }

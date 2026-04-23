@@ -31,6 +31,10 @@ export async function finalizeResponseNode(state: HarWorkflowStateType) {
     errorType: state.errorType || state.providerResult.errorType,
     errorMessage: state.errorMessage || state.providerResult.errorMessage,
     planType: planType as HarResponse["planType"],
+    execution: {
+      mode: planType === "HYBRID" ? "HYBRID" : "SINGLE",
+      steps: state.hybridSteps && state.hybridSteps.length > 0 ? state.hybridSteps : undefined,
+    },
   };
 
   // Log resilience and hybrid details

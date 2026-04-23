@@ -1,5 +1,5 @@
 import { Annotation } from "@langchain/langgraph";
-import type { ExecutionPlan, HarResponse, Intent, ProviderResult, Route, ErrorType } from "@har/shared";
+import type { ExecutionPlan, HarResponse, Intent, ProviderResult, Route, ErrorType, HybridStepResult } from "@har/shared";
 
 /**
  * HAR Workflow State Definition.
@@ -17,6 +17,10 @@ export const HarWorkflowState = Annotation.Root({
   // Execution Plan (Phase 5)
   executionPlan: Annotation<ExecutionPlan>(),
   stepResults: Annotation<ProviderResult[]>({
+    reducer: (x, y) => x.concat(y),
+    default: () => [],
+  }),
+  hybridSteps: Annotation<HybridStepResult[]>({
     reducer: (x, y) => x.concat(y),
     default: () => [],
   }),
