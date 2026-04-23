@@ -33,8 +33,8 @@ app.post("/orchestrate", async (req, res) => {
   }
 });
 
-app.listen(port, async () => {
-  logger.info(`Orchestrator service listening on port ${port}`);
+app.listen(port, "127.0.0.1", async () => {
+  logger.info(`Orchestrator service listening on 127.0.0.1:${port}`);
 
   // Perform startup validation
   const validation = await validateEnv();

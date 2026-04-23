@@ -10,8 +10,23 @@ const app = express();
 const port = env.GATEWAY_PORT;
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: env.NODE_ENV === "production" ? ["https://yourdomain.com"] : "*",
+  methods: ["GET", "POST"],
+}));
 app.use(express.json());
+
+// Authentication Middleware
+const authMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const apiKey = req.headers["x-api-key"];
+  
+  if (!apiKey || apiKey !== env.APP_API_KEY) {
+    logger.warn({ ip: req.ip }, "Unauthorized access attempt");
+    res.status(401).json({ error: "Unauthorized: Missing or invalid API key" });
+    return;
+  }
+  next();
+};
 
 // Request logging middleware
 app.use((req, _res, next) => {
@@ -25,7 +40,7 @@ app.get("/health", (_req, res) => {
 });
 
 // Process prompt — thin proxy to orchestrator
-app.post("/process", async (req, res) => {
+app.post("/process", authMiddleware, async (req, res) => {
   const { prompt } = req.body;
 
   if (!prompt || typeof prompt !== "string") {
@@ -62,6 +77,6 @@ app.post("/process", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  logger.info(`Gateway service listening on port ${port}`);
+app.listen(port, "127.0.0.1", () => {
+  logger.info(`Gateway service listening on 127.0.0.1:${port}`);
 });

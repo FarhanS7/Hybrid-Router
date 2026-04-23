@@ -28,6 +28,6 @@ app.post("/generate", async (req, res) => {
   res.json(result);
 });
 
-app.listen(port, () => {
-  logger.info(`Local LLM service listening on port ${port}`);
+app.listen(port, "127.0.0.1", () => {
+  logger.info(`Local LLM service listening on 127.0.0.1:${port}`);
 });
