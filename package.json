@@ -15,7 +15,8 @@
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "typecheck": "tsc --noEmit",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces",
+    "demo": "node apps/cli/dist/index.js \"Rewrite this sentence to be more professional: 'hey i want to ask if u can help me'\" && node apps/cli/dist/index.js \"Explain the architecture of a real-time chat system using WebSockets\" --verbose && node apps/cli/dist/index.js \"Analyze this messy note and summarize: 'meeting today at 5, talk about the new api, make sure to bring coffee, john said he might be late, dont forget to check the logs'\" --verbose"
   },
   "workspaces": [
     "apps/*",
