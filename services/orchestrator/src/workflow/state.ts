@@ -1,5 +1,5 @@
 import { Annotation } from "@langchain/langgraph";
-import type { HarResponse, Intent, ProviderResult, Route, ErrorType } from "@har/shared";
+import type { ExecutionPlan, HarResponse, Intent, ProviderResult, Route, ErrorType } from "@har/shared";
 
 /**
  * HAR Workflow State Definition.
@@ -14,7 +14,14 @@ export const HarWorkflowState = Annotation.Root({
   intent: Annotation<Intent>(),
   route: Annotation<Route>(),
   
-  // Provider Result
+  // Execution Plan (Phase 5)
+  executionPlan: Annotation<ExecutionPlan>(),
+  stepResults: Annotation<ProviderResult[]>({
+    reducer: (x, y) => x.concat(y),
+    default: () => [],
+  }),
+  
+  // Provider Result (final or primary)
   providerResult: Annotation<ProviderResult>(),
   
   // Resilience Metadata

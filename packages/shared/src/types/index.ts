@@ -42,6 +42,19 @@ export interface ProviderResult {
   errorMessage?: string;
 }
 
+// ─── Execution Plan ──────────────────────────────────────
+export type ExecutionStepType = "PREPROCESS" | "REASON" | "POSTPROCESS";
+
+export interface ExecutionStep {
+  step: ExecutionStepType;
+  provider: "LOCAL" | "CLOUD";
+}
+
+export type ExecutionPlan =
+  | { type: "LOCAL_ONLY" }
+  | { type: "CLOUD_ONLY" }
+  | { type: "HYBRID"; steps: ExecutionStep[] };
+
 // ─── HAR Response ────────────────────────────────────────
 export interface HarResponse {
   prompt: string;
@@ -55,6 +68,7 @@ export interface HarResponse {
   fallbackUsed: boolean;
   errorType?: ErrorType;
   errorMessage?: string;
+  planType?: "LOCAL_ONLY" | "CLOUD_ONLY" | "HYBRID";
 }
 
 // ─── Request ─────────────────────────────────────────────
