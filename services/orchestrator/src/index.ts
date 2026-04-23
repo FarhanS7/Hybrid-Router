@@ -1,5 +1,5 @@
 import express from "express";
-import { env } from "@har/config";
+import { env, validateEnv } from "@har/config";
 import { createChildLogger } from "@har/logger";
 import { runWorkflow } from "./services/runWorkflow.js";
 
@@ -33,6 +33,22 @@ app.post("/orchestrate", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
   logger.info(`Orchestrator service listening on port ${port}`);
+
+  // Perform startup validation
+  const validation = await validateEnv();
+  const hasError = validation.some(v => v.status === "error");
+  
+  validation.forEach(v => {
+    const logMethod = v.status === "error" ? "error" : v.status === "warn" ? "warn" : "info";
+    logger[logMethod]({ service: v.service, tip: v.tip }, v.message);
+  });
+
+  if (hasError) {
+    logger.error("Orchestrator started with CRITICAL errors. Some routes will fail.");
+  } else {
+    const mode = env.CLOUD_API_KEY ? "HYBRID (Local + Cloud)" : "LOCAL-only";
+    logger.info(`HAR is ready in ${mode} mode.`);
+  }
 });
