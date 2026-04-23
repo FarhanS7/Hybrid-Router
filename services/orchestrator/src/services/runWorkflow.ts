@@ -25,8 +25,10 @@ export async function runWorkflow(prompt: string): Promise<HarResponse> {
     logger.info({
       stage: "workflow_complete",
       route: finalState.route,
+      mode: finalState.finalResponse.execution?.mode || "SINGLE",
       provider: finalState.providerResult?.provider,
       totalLatencyMs: totalLatency,
+      fallbackUsed: finalState.finalResponse.fallbackUsed,
       success: finalState.finalResponse.success,
     }, "Workflow completed successfully");
     
