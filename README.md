@@ -1,182 +1,359 @@
 # 🚀 HAR — Hybrid AI Router
 
-> An intelligent routing engine that decides when to use local models, cloud models, or both.
+> An AI routing engine that decides when to use **local models**, **cloud models**, or **both**.
 
-HAR is a developer-first control layer for LLM execution. It analyzes the intent and complexity of your prompts to select the most efficient path—saving costs, protecting privacy, and ensuring your application stays online even when cloud providers fail.
+---
 
-```text
-Prompt 
-  → Intent Detection (Rule-based + LLM)
-  → Decision Engine (Logic + Privacy check)
-  → LOCAL | CLOUD | HYBRID
-  → Response + Execution Trace
+## 🧠 What is HAR?
+
+HAR (Hybrid AI Router) is a **decision + execution layer for AI systems**.
+
+Instead of sending every prompt to a single model, HAR analyzes the request and chooses:
+
+- 🖥️ LOCAL (fast, free, private)
+- ☁️ CLOUD (high reasoning)
+- 🔀 HYBRID (multi-step execution)
+
+### Traditional
+
+```
+Prompt → One Model → Response
+```
+
+### HAR
+
+```
+Prompt
+ → Intent Detection
+ → Decision Engine
+ → LOCAL | CLOUD | HYBRID
+ → Response + Metadata
 ```
 
 ---
 
-## 💡 Why HAR?
+## ❓ Why HAR?
 
-Not every prompt needs a trillion-parameter cloud model. Using the right tool for the job leads to better systems:
-
-| Feature | Local LLM | Cloud LLM | **HAR (Hybrid)** |
-| :--- | :--- | :--- | :--- |
-| **Cost** | Free (Your hardware) | High (Usage-based) | **Optimized** |
-| **Privacy** | Maximum (Data stays local) | Variable (External API) | **Privacy-Aware** |
-| **Speed** | Low Latency (Local) | Higher Latency (Network) | **Balanced** |
-| **Reliability** | Works Offline | Fragile (Network/Outages) | **Automatic Fallback** |
-
----
-
-## ✨ Features
-
-- **Smart Routing**: Categorizes prompts (e.g., chat, architecture, sensitive) to choose the best model.
-- **Hybrid Execution**: Performs local pre-processing (cleanup/summarization) before sending refined context to the cloud.
-- **Resilience First**: Built-in timeouts, retries, and automatic local fallback if cloud keys or networks fail.
-- **Explainable AI**: Transparent "Execution Trace" that tells you *why* a specific route was chosen.
-- **CLI-First DX**: A polished terminal interface with structured output, JSON support, and system diagnostics.
+| Problem | HAR Solution |
+|--------|------------|
+| Expensive cloud usage | Uses local models when possible |
+| Privacy risks | Keeps sensitive data local |
+| API failures | Retry + fallback system |
+| No transparency | Shows routing decisions |
+| Complex tasks | Hybrid execution |
 
 ---
 
-## ⏱️ Quick Start (5 Minutes)
+## ⚡ Features
 
-HAR is designed to work out of the box with [Ollama](https://ollama.ai/).
+- 🧭 Smart routing (LOCAL / CLOUD / HYBRID)
+- 🔀 Conditional hybrid execution
+- 🛡️ Resilience (retry, timeout, fallback)
+- 🔍 Explainability (`--verbose`)
+- 🧰 CLI-first developer tool
 
-### 1. Install & Run Ollama
-Download Ollama from [ollama.com](https://ollama.com/) and pull a supported model:
-```bash
-ollama run llama3.2
+---
+
+## 🏗️ Architecture
+
+### High-Level Flow
+
+```
+User (CLI/Web)
+      ↓
+   Gateway
+      ↓
+ Orchestrator (LangGraph)
+      ↓
+ Intent Detection
+      ↓
+ Decision Engine
+      ↓
+ ┌───────────────┬───────────────┬───────────────┐
+ │     LOCAL     │     CLOUD     │    HYBRID     │
+ │               │               │               │
+ ▼               ▼               ▼
+Local LLM     Cloud LLM     Multi-step plan
+(Ollama)      (API)         LOCAL → CLOUD → LOCAL
 ```
 
-### 2. Setup HAR
-Clone the repository and install dependencies:
-```bash
-git clone https://github.com/FarhanS7/Hybrid-Router.git
-cd Hybrid-Router
-npm install
+---
+
+### Orchestration Flow
+
+```
+START
+ → normalizePrompt
+ → detectIntent
+ → decideRoute
+   ├─ LOCAL  → executeLocal
+   ├─ CLOUD  → executeCloud
+   └─ HYBRID → executePlan
+ → finalizeResponse
+ → END
 ```
 
-### 3. Configure Environment
-Copy the example environment file:
-```bash
+---
+
+### Resilience Flow
+
+```
+Provider Call
+   │
+   ├─ success → return
+   │
+   └─ failure
+        → retry (1x)
+        → fallback (if safe)
+        → block (if sensitive)
+        → safe error response
+```
+
+---
+
+## ⚡ Quick Start (5 min)
+
+### 1. Install Ollama
+
+```
+ollama serve
+ollama run phi3:mini
+```
+
+---
+
+### 2. Clone repo
+
+```
+git clone https://github.com/your-username/har.git
+cd har
+```
+
+---
+
+### 3. Setup env
+
+```
 cp .env.example .env
 ```
-Open `.env` and set your local model (e.g., `OLLAMA_MODEL=llama3.2`). 
-*Note: If you don't provide a `CLOUD_API_KEY`, HAR automatically operates in **LOCAL-only mode**.*
 
-### 4. Run & Verify
-Start the background services and run the doctor check:
-```bash
+Edit:
+
+```
+OLLAMA_BASE_URL=http://localhost:11434
+LOCAL_MODEL=phi3:mini
+
+# optional
+CLOUD_API_KEY=
+CLOUD_MODEL=gemini-2.0-flash
+```
+
+👉 No cloud key = LOCAL-only mode (works fine)
+
+---
+
+### 4. Run
+
+```
+npm install
 npm run dev
-# In a new terminal:
+```
+
+---
+
+### 5. Verify
+
+```
 har doctor
 ```
 
 ---
 
-## 💻 CLI Usage
+## 🧪 Usage
 
-The HAR CLI is the primary way to interact with the router.
+### Basic
 
-```bash
-# Simple prompt (usually routed to LOCAL)
-har "What is the capital of France?"
+```
+har "hello"
+```
 
-# Complex prompt with verbose trace (usually routed to CLOUD)
-har "Design a scalable notification system using Redis and WebSockets" --verbose
+---
 
-# Integration-friendly JSON output
-har "Rewrite: 'hey how r u'" --json
+### Verbose (debug mode)
 
-# Check system health
+```
+har "design a scalable system" --verbose
+```
+
+Shows:
+- intent
+- route
+- reason
+- retries
+- fallback
+
+---
+
+### JSON (integration)
+
+```
+har "hello" --json
+```
+
+---
+
+### Doctor
+
+```
 har doctor
 ```
 
-### Flags:
-- `--verbose`: Shows internal intent detection, routing reasoning, and granular hybrid steps.
-- `--json`: Returns raw structured data (prompt, route, latency, results).
-- `--no-color`: Disables ANSI colors for logs.
+---
+
+## 🧠 How HAR Decides
+
+### LOCAL
+```
+har "rewrite this sentence"
+```
+
+✔ fast  
+✔ free  
+✔ private  
 
 ---
 
-## 🎯 How HAR Decides
+### CLOUD
+```
+har "design distributed system"
+```
 
-HAR uses a multi-stage orchestrator to evaluate every request:
-
-*   **LOCAL**: Simple tasks (greetings, text rewriting, summarization) or prompts containing sensitive data.
-*   **CLOUD**: Complex reasoning, architecture design, or deep coding tasks that require larger parameter counts.
-*   **HYBRID**: Multi-step workflows. For example, "Analyze these messy logs and design a fix" might use LOCAL to clean the logs and CLOUD to propose the fix.
-
----
-
-## 🛡️ Reliability & Resilience
-
-HAR treats resilience as a first-class citizen:
-- **Timeouts**: Prevents your application from hanging on a slow provider.
-- **Retries**: Automatically retries failed requests with exponential backoff.
-- **Fallback**: If a cloud request fails, HAR instantly re-routes the prompt to your local model.
-- **Privacy Guard**: Prompts tagged as "sensitive" are hard-blocked from ever reaching a cloud provider.
+✔ strong reasoning  
 
 ---
 
-## 🏗️ Project Structure
+### HYBRID
+```
+har "clean messy notes and explain"
+```
 
-```text
+```
+LOCAL → preprocess
+CLOUD → reason
+LOCAL → format
+```
+
+---
+
+---
+
+## 🛡️ Security & Privacy
+
+HAR is built with a **Privacy-First** architecture to ensure sensitive data is never exposed to cloud providers without explicit protection.
+
+### 🔒 Privacy-Aware Routing
+- **Sensitivity Detection**: Automatic detection of PII (Emails, Phones, SSNs, Credit Cards) and sensitive keywords.
+- **Local Redaction**: For `HYBRID` routes, HAR performs local redaction of sensitive data before passing it to cloud reasoners. The cloud only sees the "cleaned" context.
+- **Privacy Override**: Sensitive prompts that do not require cloud reasoning are forced to the `LOCAL` route.
+
+### 🔑 Authentication
+- **Gateway Auth**: All requests to the HAR Gateway require a valid `X-API-KEY` header.
+- **Secure Configuration**: API keys are managed via environment variables and are never logged.
+
+### 📜 Secure Logging
+- **Automatic Redaction**: The internal logger automatically redacts API keys, tokens, and authorization headers from all logs.
+- **PII Stripping**: Raw prompt content is stripped from intent logs to prevent accidental PII storage.
+
+### 🌐 Network Hardening
+- **Local Binding**: All internal microservices bind strictly to `127.0.0.1`, preventing external exposure.
+- **CORS Policy**: Restricted CORS origins in production to prevent cross-origin attacks.
+
+---
+
+## 📂 Project Structure
+
+```
 apps/
-  cli/             # Main developer interface
-  web/             # Web dashboard (Experimental)
+  cli/
+  web/
 
 services/
-  gateway/         # Entry point for all requests
-  orchestrator/    # Routing logic & LangGraph state machine
-  intent-service/  # Prompt classification engine
-  local-llm/       # Ollama provider bridge
-  cloud-llm/       # Gemini/OpenAI provider bridge
+  gateway/
+  orchestrator/
+  intent-service/
+  local-llm/
+  cloud-llm/
 
 packages/
-  shared/          # Common types & interfaces
-  config/          # Environment & policy management
-  logger/          # Structured logging (Pino)
+  shared/
+  config/
+  logger/
 ```
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Config
 
-Key settings in `.env`:
-- `OLLAMA_BASE_URL`: Usually `http://localhost:11434`
-- `LOCAL_MODEL`: Your preferred local model (e.g., `llama3.2`, `phi3`)
-- `CLOUD_API_KEY`: Required for cloud routing (e.g., Gemini or OpenAI)
-- `CLOUD_PROVIDER`: Set to `gemini` or `openai`
-- `ALLOW_CLOUD_FALLBACK`: Whether to try local models if cloud fails.
+```
+OLLAMA_BASE_URL=http://localhost:11434
+LOCAL_MODEL=phi3:mini
+
+CLOUD_API_KEY=
+CLOUD_MODEL=gemini-2.0-flash
+
+LOCAL_TIMEOUT_MS=15000
+CLOUD_TIMEOUT_MS=12000
+MAX_RETRIES=1
+```
 
 ---
 
-## 🗺️ Roadmap & Status
+## 🚧 Status
 
-### **Completed (V1.0)**
-- ✅ Core Routing & Intent Detection
-- ✅ Multi-Service Orchestration (LangGraph)
-- ✅ Hybrid Execution (Local → Cloud)
-- ✅ CLI with Verbose/JSON modes
-- ✅ Health Check Diagnostics (`har doctor`)
+### Done
+- ✅ Routing
+- ✅ Orchestration
+- ✅ Resilience
+- ✅ Hybrid execution
+- ✅ CLI
 
-### **Planned**
-- 🛠️ Adaptive Learning (Routing based on previous performance)
-- 🛠️ Evaluation Framework (Benchmarking local vs cloud accuracy)
-- 🛠️ More Providers (Anthropic, Mistral, Local vLLM)
-- 🛠️ Web-based Analytics Dashboard
+### Next
+- ⏳ Optimization
+- ⏳ Evaluation
+- ⏳ UI polish
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Whether it's adding a new provider, improving routing logic, or fixing a typo in the docs:
-1. Fork the repo.
-2. Create a feature branch.
-3. Submit a Pull Request.
+Ideas:
+- routing improvements
+- hybrid logic
+- providers
+- benchmarks
 
 ---
 
 ## 🧠 Philosophy
 
-> Not every problem needs the most powerful model; every problem needs the most efficient solution.
+```
+Not every problem needs the most powerful model.
+```
+
+```
+The intelligence is in choosing the right model
+for the right task
+at the right time
+```
+
+---
+
+## ⭐ Support
+
+Star the repo if useful.
+
+---
+
+## 📄 License
+
+MIT
