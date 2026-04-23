@@ -56,6 +56,13 @@ export type ExecutionPlan =
   | { type: "HYBRID"; steps: ExecutionStep[] };
 
 // ─── HAR Response ────────────────────────────────────────
+export interface HybridStepResult {
+  step: ExecutionStepType;
+  provider: "LOCAL" | "CLOUD";
+  success: boolean;
+  latencyMs: number;
+}
+
 export interface HarResponse {
   prompt: string;
   normalizedPrompt: string;
@@ -69,6 +76,10 @@ export interface HarResponse {
   errorType?: ErrorType;
   errorMessage?: string;
   planType?: "LOCAL_ONLY" | "CLOUD_ONLY" | "HYBRID";
+  execution?: {
+    mode: "SINGLE" | "HYBRID";
+    steps?: HybridStepResult[];
+  };
 }
 
 // ─── Request ─────────────────────────────────────────────
