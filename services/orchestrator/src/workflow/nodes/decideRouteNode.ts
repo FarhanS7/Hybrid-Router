@@ -16,12 +16,13 @@ export async function decideRouteNode(state: HarWorkflowStateType) {
   }
 
   const prompt = state.normalizedPrompt || state.prompt;
-  const route = routePrompt(state.intent, prompt);
+  const { route, reason } = routePrompt(state.intent, prompt);
 
-  logger.info({ stage: "route_selected", route }, "Route decided");
+  logger.info({ stage: "route_selected", route, reason }, "Route decided");
 
   return {
     route,
-    logs: [`Route decided: ${route}`],
+    routingReason: reason,
+    logs: [`Route decided: ${route} (${reason})`],
   };
 }

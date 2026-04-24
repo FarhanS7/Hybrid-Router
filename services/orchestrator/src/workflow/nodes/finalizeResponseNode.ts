@@ -24,6 +24,7 @@ export async function finalizeResponseNode(state: HarWorkflowStateType) {
     intent: state.intent,
     route: state.route,
     result: state.providerResult.output,
+    reason: state.intent.reason || state.routingReason,
     model: state.providerResult.model,
     latencyMs: state.providerResult.latencyMs,
     success: state.providerResult.success,

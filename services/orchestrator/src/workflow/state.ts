@@ -13,6 +13,7 @@ export const HarWorkflowState = Annotation.Root({
   normalizedPrompt: Annotation<string>(),
   intent: Annotation<Intent>(),
   route: Annotation<Route>(),
+  routingReason: Annotation<string>(),
   
   // Execution Plan (Phase 5)
   executionPlan: Annotation<ExecutionPlan>(),
