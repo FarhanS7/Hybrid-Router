@@ -93,10 +93,78 @@ function detectComplexity(taskType: TaskType, prompt: string): "simple" | "mediu
 
 // ─── Public API ──────────────────────────────────────────
 
+/**
+ * Refined rule-based classifier for better deterministic routing.
+ */
 export function classifyIntent(prompt: string): Intent {
-  const sensitive = detectSensitivity(prompt);
-  const { taskType, confidence } = detectTaskType(prompt);
-  const complexity = detectComplexity(taskType, prompt);
+  const lower = prompt.toLowerCase();
+  
+  // 1. Detect Sensitivity (Privacy First)
+  let sensitive = false;
+  let sensitivityReason = "";
+  
+  const hasPII = Object.values(PII_PATTERNS).some(regex => {
+    const match = prompt.match(regex);
+    return match && match.length > 0;
+  });
+  
+  const sensitiveKeyword = SENSITIVE_KEYWORDS.find(kw => {
+    const regex = new RegExp(`\\b${kw}\\b`, "i");
+    return regex.test(prompt);
+  });
 
-  return { complexity, sensitive, taskType, confidence };
+  if (hasPII) {
+    sensitive = true;
+    sensitivityReason = "Pattern-based PII detected (email/phone/SSN/card)";
+  } else if (sensitiveKeyword) {
+    sensitive = true;
+    sensitivityReason = `Sensitive keyword detected: "${sensitiveKeyword}"`;
+  }
+
+  // 2. Detect Task Type (Priority-based)
+  let taskType: TaskType = "other";
+  let bestScore = 0;
+  let matchReason = "No specific task keywords found";
+
+  for (const [task, keywords] of Object.entries(TASK_KEYWORDS) as [TaskType, string[]][]) {
+    if (task === "other") continue;
+
+    let matches: string[] = [];
+    for (const kw of keywords) {
+      const regex = new RegExp(`\\b${kw}\\b`, "i");
+      if (regex.test(prompt)) matches.push(kw);
+    }
+
+    // Heuristic: Priority tasks get a boost
+    let score = matches.length;
+    if (COMPLEX_TASKS.includes(task)) score *= 1.2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      taskType = task;
+      matchReason = `Matched ${task} keywords: [${matches.join(", ")}]`;
+    }
+  }
+
+  // 3. Determine Complexity
+  const wordCount = prompt.split(/\s+/).length;
+  let complexity: "simple" | "medium" | "complex" = detectComplexity(taskType, prompt);
+  
+  // Complexity overrides
+  if (wordCount > 100) complexity = "complex";
+
+  // 4. Assemble Final Reason
+  const reasonParts = [
+    `Task: ${taskType} (${matchReason})`,
+    sensitive ? `Privacy: ${sensitivityReason}` : "Privacy: No sensitive data detected",
+    `Complexity: ${complexity} (${wordCount} words)`,
+  ];
+
+  return {
+    complexity,
+    sensitive,
+    taskType,
+    confidence: bestScore > 0 ? Math.min(0.5 + (bestScore * 0.2), 0.95) : 0.5,
+    reason: reasonParts.join(" | "),
+  };
 }
