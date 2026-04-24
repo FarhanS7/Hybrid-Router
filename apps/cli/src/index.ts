@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import type { HarResponse } from "@har/shared";
+import { env } from "@har/config";
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:4000";
 
@@ -22,6 +23,13 @@ const colors = {
   cyan: "\x1b[36m",
   red: "\x1b[31m",
   gray: "\x1b[90m",
+};
+
+let useColor = true;
+
+const log = (color: keyof typeof colors, text: string) => {
+  const output = useColor ? `${colors[color]}${text}${colors.reset}` : text;
+  console.log(output);
 };
 
 const stripColors = (text: string) => text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -61,12 +69,7 @@ program
   .option("-j, --json", "Output as structured JSON")
   .option("--no-color", "Disable colored output")
   .action(async (prompt: string, options: { verbose?: boolean; json?: boolean; color: boolean }) => {
-    const useColor = options.color !== false;
-
-    const log = (color: keyof typeof colors, text: string) => {
-      const output = useColor ? `${colors[color]}${text}${colors.reset}` : text;
-      console.log(output);
-    };
+    useColor = options.color !== false;
 
     if (!options.json) {
       log("cyan", "\n🚀 HAR — Hybrid AI Router");
@@ -76,7 +79,10 @@ program
     try {
       const response = await fetch(`${GATEWAY_URL}/process`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-api-key": env.APP_API_KEY
+        },
         body: JSON.stringify({ prompt }),
       });
 
@@ -116,7 +122,7 @@ program
         log("bold", "🔍 Execution Trace:");
         console.log(`   ${colors.gray}Intent:${colors.reset}       ${result.intent.taskType} (Complexity: ${result.intent.complexity}, Confidence: ${result.intent.confidence})`);
         console.log(`   ${colors.gray}Route:${colors.reset}        ${result.route}`);
-        console.log(`   ${colors.gray}Reason:${colors.reset}       ${getRouteReason(result)}`);
+        console.log(`   ${colors.gray}Reason:${colors.reset}       ${result.reason || getRouteReason(result)}`);
         if (result.fallbackUsed) {
           log("yellow", `   ⚠️ Fallback used due to ${result.errorType || "provider failure"}`);
         }
@@ -163,6 +169,13 @@ function getRouteReason(res: HarResponse): string {
 }
 
 function handleFriendlyError(errorType?: string, message?: string) {
+  if (errorType === "PROMPT_TOO_LARGE") {
+    log("red", "❌ Prompt too large");
+    console.log(`   ${message}`);
+    console.log(`   ${colors.gray}Tip: Split large documents into smaller chunks.${colors.reset}`);
+    return;
+  }
+  
   if (errorType === "LOCAL_UNAVAILABLE" || message?.includes("fetch failed")) {
     console.log(`\n👉 ${colors.bold}Fix: Run \`ollama serve\` and ensure your local model is loaded.${colors.reset}`);
   } else if (message?.includes("CLOUD_API_KEY")) {
