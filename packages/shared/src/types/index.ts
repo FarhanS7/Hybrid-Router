@@ -18,6 +18,7 @@ export interface Intent {
   sensitive: boolean;
   taskType: TaskType;
   confidence: number;
+  reason?: string;
 }
 
 // ─── Error ───────────────────────────────────────────────
@@ -69,6 +70,7 @@ export interface HarResponse {
   intent: Intent;
   route: Route;
   result: string;
+  reason?: string;
   model?: string;
   latencyMs: number;
   success: boolean;

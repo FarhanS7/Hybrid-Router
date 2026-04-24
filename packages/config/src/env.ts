@@ -28,6 +28,7 @@ const envSchema = z.object({
   CLOUD_PROVIDER: z.enum(["gemini", "openai"]).default("gemini"),
 
   // POLICIES
+  MAX_PROMPT_CHARS: z.coerce.number().int().positive().default(12000),
   LOCAL_TIMEOUT_MS: z.coerce.number().default(15000),
   CLOUD_TIMEOUT_MS: z.coerce.number().default(12000),
   MAX_RETRIES: z.coerce.number().default(1),
