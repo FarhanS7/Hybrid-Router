@@ -106,9 +106,11 @@ program
           prompt: result.prompt,
           normalizedPrompt: result.normalizedPrompt,
           route: result.route,
+          finalProvider: result.finalProvider,
           intent: result.intent,
           latencyMs: result.latencyMs,
           fallbackUsed: result.fallbackUsed,
+          fallbackReason: result.fallbackReason,
           model: result.model,
           result: result.result,
           execution: result.execution,
@@ -121,10 +123,11 @@ program
       if (options.verbose) {
         log("bold", "🔍 Execution Trace:");
         console.log(`   ${colors.gray}Intent:${colors.reset}       ${result.intent.taskType} (Complexity: ${result.intent.complexity}, Confidence: ${result.intent.confidence})`);
-        console.log(`   ${colors.gray}Route:${colors.reset}        ${result.route}`);
-        console.log(`   ${colors.gray}Reason:${colors.reset}       ${result.reason || getRouteReason(result)}`);
+        console.log(`   ${colors.gray}Initial Route:${colors.reset} ${result.route}`);
+        console.log(`   ${colors.gray}Final Provider:${colors.reset} ${result.finalProvider}`);
+        console.log(`   ${colors.gray}Reason:${colors.reset}       ${result.routeReason || getRouteReason(result)}`);
         if (result.fallbackUsed) {
-          log("yellow", `   ⚠️ Fallback used due to ${result.errorType || "provider failure"}`);
+          log("yellow", `   ⚠️ Fallback used due to ${result.fallbackReason || result.errorType || "provider failure"}`);
         }
         if (result.execution?.steps) {
           log("bold", "   🪜 Hybrid Steps:");
@@ -136,10 +139,14 @@ program
       }
 
       // --- Standard Output ---
-      console.log(`${colors.bold}Route:    ${result.route}${colors.reset}`);
-      if (result.model) console.log(`${colors.gray}Model:    ${result.model}${colors.reset}`);
-      console.log(`${colors.gray}Latency:  ${(result.latencyMs / 1000).toFixed(1)}s${colors.reset}`);
-      console.log(`${colors.gray}Fallback: ${result.fallbackUsed ? "yes" : "no"}${colors.reset}`);
+      console.log(`${colors.bold}Initial Route:  ${result.route}${colors.reset}`);
+      console.log(`${colors.gray}Final Provider: ${result.finalProvider}${colors.reset}`);
+      if (result.model) console.log(`${colors.gray}Model:          ${result.model}${colors.reset}`);
+      console.log(`${colors.gray}Latency:        ${(result.latencyMs / 1000).toFixed(1)}s${colors.reset}`);
+      console.log(`${colors.gray}Fallback:       ${result.fallbackUsed ? "yes" : "no"}${colors.reset}`);
+      if (result.fallbackUsed && result.fallbackReason) {
+        console.log(`${colors.yellow}Fallback Reason: ${result.fallbackReason}${colors.reset}`);
+      }
       console.log();
 
       log("gray", "─".repeat(40));

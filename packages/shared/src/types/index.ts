@@ -62,22 +62,30 @@ export interface HybridStepResult {
   provider: "LOCAL" | "CLOUD";
   success: boolean;
   latencyMs: number;
+  errorType?: string;
 }
 
 export interface HarResponse {
   prompt: string;
   normalizedPrompt: string;
-  intent: Intent;
-  route: Route;
-  result: string;
-  reason?: string;
+
+  route: Route; // initial planned route
+  finalProvider: "LOCAL" | "CLOUD";
   model?: string;
+
+  fallbackUsed: boolean;
+  fallbackReason?: ErrorType | string;
+
+  intent: Intent;
+  result: string;
   latencyMs: number;
   success: boolean;
-  fallbackUsed: boolean;
+
+  routeReason?: string;
+
+  planType?: "LOCAL_ONLY" | "CLOUD_ONLY" | "HYBRID";
   errorType?: ErrorType;
   errorMessage?: string;
-  planType?: "LOCAL_ONLY" | "CLOUD_ONLY" | "HYBRID";
   execution?: {
     mode: "SINGLE" | "HYBRID";
     steps?: HybridStepResult[];
