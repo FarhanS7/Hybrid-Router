@@ -53,6 +53,15 @@ app.post("/process", authMiddleware, async (req, res) => {
     return;
   }
 
+  if (prompt.length > env.MAX_PROMPT_CHARS) {
+    res.status(400).json({
+      success: false,
+      errorType: "PROMPT_TOO_LARGE",
+      message: `Prompt is too large. Maximum allowed length is ${env.MAX_PROMPT_CHARS} characters.`,
+    });
+    return;
+  }
+
   try {
     const orchestratorUrl = `http://localhost:${env.ORCHESTRATOR_PORT}/orchestrate`;
 
