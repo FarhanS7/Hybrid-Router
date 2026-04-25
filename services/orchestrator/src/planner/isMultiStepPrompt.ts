@@ -13,12 +13,13 @@ export function isMultiStepPrompt(prompt: string): boolean {
     /\b(debug|fix)\b.*\b(optimize|improve)\b/,
     /\b(read|parse)\b.*\b(convert|transform)\b/,
     /\b(find|identify)\b.*\b(fix|resolve)\b/,
+    /\b(redact|anonymize|clean)\b.*\b(explain|describe|analyze|design)\b/,
   ];
 
   const hasMultiStepPattern = multiStepPatterns.some(pattern => pattern.test(p));
 
   // Check for explicit conjunctions joining action verbs
-  const actionVerbs = ["fix", "explain", "analyze", "summarize", "rewrite", "debug", "optimize", "simplify", "clean", "refactor", "convert", "review"];
+  const actionVerbs = ["fix", "explain", "analyze", "summarize", "rewrite", "debug", "optimize", "simplify", "clean", "refactor", "convert", "review", "redact", "anonymize"];
   const conjunctions = [" and ", " then ", " also ", " plus "];
 
   let actionVerbCount = 0;
