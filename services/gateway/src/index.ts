@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { env } from "@har/config";
 import { createChildLogger } from "@har/logger";
+import { rateLimit } from "./middleware/rateLimit.js";
 import type { HarResponse } from "@har/shared";
 
 const logger = createChildLogger("gateway");
@@ -15,6 +16,7 @@ app.use(cors({
   methods: ["GET", "POST"],
 }));
 app.use(express.json());
+app.use(rateLimit);
 
 // Authentication Middleware
 const authMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
