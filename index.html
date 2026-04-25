@@ -54,13 +54,13 @@
 <body class="bg-[#FAFAF8] text-stone-800 font-sans antialiased selection:bg-stone-200 selection:text-stone-900 overflow-x-hidden">
 
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-[#FAFAF8]/80 backdrop-blur-xl border-b border-stone-200/50 transition-all duration-300" id="navbar">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 flex justify-between items-center h-20">
+    <nav class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-7xl transition-all duration-500" id="navbar">
+        <div class="bg-white/60 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)] rounded-[2.5rem] px-6 lg:px-10 flex justify-between items-center h-16 transition-all duration-300" id="navbar-inner">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-stone-900 flex items-center justify-center text-white">
-                    <i data-lucide="route" class="w-6 h-6"></i>
+                <div class="w-8 h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white">
+                    <i data-lucide="route" class="w-5 h-5"></i>
                 </div>
-                <span class="text-2xl font-bold tracking-tight text-stone-900">HAR</span>
+                <span class="text-xl font-bold tracking-tight text-stone-900">HAR</span>
             </div>
             <div class="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
                 <a href="#features" class="hover:text-stone-900 transition-colors">Features</a>
@@ -68,9 +68,9 @@
                 <a href="#quickstart" class="hover:text-stone-900 transition-colors">Quick Start</a>
                 <a href="#cli" class="hover:text-stone-900 transition-colors">CLI Docs</a>
             </div>
-            <div>
-                <a href="https://github.com/FarhanS7/Hybrid-Router" target="_blank" class="bg-stone-900 text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-stone-800 transition-colors shadow-sm hidden md:flex items-center gap-2">
-                    <i data-lucide="github" class="w-4 h-4"></i>
+            <div class="flex items-center gap-3">
+                <a href="https://github.com/FarhanS7/Hybrid-Router" target="_blank" class="bg-stone-900 text-white px-5 py-2 rounded-full text-xs font-medium hover:bg-stone-800 transition-colors shadow-sm hidden md:flex items-center gap-2">
+                    <i data-lucide="github" class="w-3.5 h-3.5"></i>
                     GitHub
                 </a>
                 <button class="md:hidden text-stone-900 p-2">
@@ -413,14 +413,14 @@
             const revealElements = document.querySelectorAll('.reveal-element');
             revealElements.forEach(el => observer.observe(el));
 
-            const navbar = document.getElementById('navbar');
+            const navbarInner = document.getElementById('navbar-inner');
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 50) {
-                    navbar.classList.add('shadow-sm');
-                    navbar.classList.replace('bg-[#FAFAF8]/80', 'bg-white/90');
+                    navbarInner.classList.replace('bg-white/60', 'bg-white/90');
+                    navbarInner.classList.add('shadow-[0_8px_32px_0_rgba(0,0,0,0.08)]');
                 } else {
-                    navbar.classList.remove('shadow-sm');
-                    navbar.classList.replace('bg-white/90', 'bg-[#FAFAF8]/80');
+                    navbarInner.classList.replace('bg-white/90', 'bg-white/60');
+                    navbarInner.classList.remove('shadow-[0_8px_32px_0_rgba(0,0,0,0.08)]');
                 }
             });
         });
