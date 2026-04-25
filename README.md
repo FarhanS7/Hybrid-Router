@@ -44,7 +44,19 @@ Not every prompt needs a trillion-parameter cloud model. Using the right tool fo
 - **Resilience First**: Built-in timeouts, retries, and automatic local fallback if cloud keys or networks fail.
 - **Explainable AI**: Transparent "Execution Trace" that tells you *why* a specific route was chosen using deterministic logic.
 - **CLI-First DX**: A polished terminal interface with structured output, JSON support, and system diagnostics.
-- **Security Hardened**: CLI-to-Gateway communication is secured via `x-api-key` validation.
+- **Security Hardened**: Protected via API keys, rate limiting, and automated secret scanning.
+- **Production Ready**: Includes CI/CD pipelines, regression tests, and evaluation benchmarks.
+
+---
+
+## 🛡️ Trust & Security
+
+HAR is built with a **Security-First** philosophy, ensuring your data is handled with maximum care:
+
+- **Strict Privacy Mode**: When `PRIVACY_MODE=strict`, prompts detected as sensitive are **physically blocked** from ever touching a cloud provider. Hybrid execution and cloud fallbacks are disabled for these payloads.
+- **Deterministic Redaction**: Uses high-performance regex patterns to redact Emails, Phone Numbers, API Keys, and Secrets *before* they are sent to any cloud step.
+- **Rate Limiting**: Built-in protection against request floods using an in-memory window-based limiter at the Gateway.
+- **Secret Scanning**: Automated CI checks ensure no credentials or sensitive patterns are committed to the codebase.
 
 ---
 
@@ -67,7 +79,13 @@ npm install
 npm run build
 ```
 
-### 3. Setup CLI
+### 3. Verify Routing
+Run the built-in regression tests to ensure the routing engine is working correctly:
+```bash
+npm run test:routing
+```
+
+### 4. Setup CLI
 Choose one of the following methods to run the `har` command:
 
 **Option A: Link Globally (Recommended)**
@@ -81,71 +99,39 @@ har doctor
 npm run cli -- doctor
 ```
 
-### 4. Configure Environment
+### 5. Configure Environment
 Copy the example environment file:
 ```bash
 cp .env.example .env
 ```
 Open `.env` and set your local model (e.g., `OLLAMA_MODEL=llama3.2`). 
-*Note: If you don't provide a `CLOUD_API_KEY`, HAR automatically operates in **LOCAL-only mode**.*
 
-**Important**: Ensure `APP_API_KEY` matches between your services and CLI (default is `har_dev_key`).
+---
 
-### 5. Run & Verify
-Start the background services:
+## 🧪 Testing & Evaluation
+
+HAR includes a professional suite for measuring routing performance:
+
 ```bash
-# This starts the Gateway, Orchestrator, Intent Service, and Web Dashboard
-npm run dev
-```
-In a new terminal, try your first route:
-```bash
-har "What is the capital of France?" --verbose
+# Run regression tests (19+ cases)
+npm run test:routing
+
+# Run evaluation benchmark (Accuracy, Safety, Latency)
+npm run eval:routing
 ```
 
 ---
 
-## 💻 CLI Usage
+## ⚙️ Configuration
 
-The HAR CLI is the primary way to interact with the router.
-
-```bash
-# Simple prompt (usually routed to LOCAL)
-har "What is the capital of France?"
-
-# Complex prompt with verbose trace (usually routed to CLOUD)
-har "Design a scalable notification system using Redis and WebSockets" --verbose
-
-# Integration-friendly JSON output
-har "Rewrite: 'hey how r u'" --json
-
-# Check system health
-har doctor
-```
-
-### Flags:
-- `--verbose`: Shows internal intent detection, routing reasoning, and granular hybrid steps.
-- `--json`: Returns raw structured data (prompt, route, latency, results).
-- `--no-color`: Disables ANSI colors for logs.
-
----
-
-## 🎯 How HAR Decides
-
-HAR uses a multi-stage orchestrator to evaluate every request with **deterministic reasoning**:
-
-*   **LOCAL**: Simple tasks (greetings, text rewriting, summarization) or prompts containing sensitive data (PII/Secrets).
-*   **CLOUD**: Complex reasoning, architecture design, or deep coding tasks that require larger parameter counts.
-*   **HYBRID**: Multi-step workflows. For example, "Analyze these messy logs and design a fix" might use LOCAL to clean the logs and CLOUD to propose the fix.
-
----
-
-## 🛡️ Reliability & Resilience
-
-HAR treats resilience as a first-class citizen:
-- **Timeouts**: Prevents your application from hanging on a slow provider.
-- **Retries**: Automatically retries failed requests with exponential backoff.
-- **Fallback**: If a cloud request fails, HAR instantly re-routes the prompt to your local model.
-- **Privacy Guard**: Prompts tagged as "sensitive" or containing PII are restricted to local execution.
+Key settings in `.env`:
+- `APP_API_KEY`: Secure key for CLI-to-Gateway communication.
+- `PRIVACY_MODE`: `strict` (No cloud for sensitive) or `balanced` (Redaction-based).
+- `RATE_LIMIT_MAX_REQUESTS`: Max requests per minute (Default: 60).
+- `OLLAMA_BASE_URL`: Usually `http://localhost:11434`
+- `LOCAL_MODEL`: Your preferred local model (e.g., `llama3.2`, `phi3`)
+- `CLOUD_API_KEY`: Required for cloud routing (e.g., Gemini or OpenAI)
+- `MAX_PROMPT_CHARS`: Maximum prompt length (default: 12000)
 
 ---
 
@@ -157,30 +143,19 @@ apps/
   web/             # Web dashboard (Experimental)
 
 services/
-  gateway/         # Entry point for all requests
-  orchestrator/    # Routing logic & LangGraph state machine
+  gateway/         # Entry point for all requests + Rate Limiting
+  orchestrator/    # Routing logic, Privacy layer & LangGraph state machine
   intent-service/  # Prompt classification engine
   local-llm/       # Ollama provider bridge
   cloud-llm/       # Gemini/OpenAI provider bridge
 
 packages/
-  shared/          # Common types & interfaces
+  shared/          # Common types & response contracts
   config/          # Environment & policy management
   logger/          # Structured logging (Pino)
+
+scripts/           # Testing, Evaluation, and Secret Scanning
 ```
-
----
-
-## ⚙️ Configuration
-
-Key settings in `.env`:
-- `APP_API_KEY`: Secure key for CLI-to-Gateway communication.
-- `OLLAMA_BASE_URL`: Usually `http://localhost:11434`
-- `LOCAL_MODEL`: Your preferred local model (e.g., `llama3.2`, `phi3`)
-- `CLOUD_API_KEY`: Required for cloud routing (e.g., Gemini or OpenAI)
-- `CLOUD_PROVIDER`: Set to `gemini` or `openai`
-- `MAX_PROMPT_CHARS`: Maximum prompt length (default: 12000)
-- `ALLOW_CLOUD_FALLBACK`: Whether to try local models if cloud fails.
 
 ---
 
@@ -193,13 +168,15 @@ Key settings in `.env`:
 - ✅ Explainable Routing Reasons
 - ✅ CLI with Verbose/JSON modes
 - ✅ Health Check Diagnostics (`har doctor`)
-- ✅ Security Hardening (API Key validation)
+- ✅ Security Hardening (API Key + Rate Limiting)
+- ✅ **Strict Privacy Mode & Redaction**
+- ✅ **CI/CD & Evaluation Framework**
 
 ### **Planned**
 - 🛠️ Adaptive Learning (Routing based on previous performance)
-- 🛠️ Evaluation Framework (Benchmarking local vs cloud accuracy)
 - 🛠️ More Providers (Anthropic, Mistral, Local vLLM)
 - 🛠️ Web-based Analytics Dashboard
+- 🛠️ Prompt Injection Protection Layer
 
 ---
 
