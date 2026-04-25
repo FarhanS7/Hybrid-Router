@@ -1,5 +1,6 @@
 import { createChildLogger } from "@har/logger";
 import type { Intent } from "@har/shared";
+import { env } from "@har/config";
 import { isMessyPrompt } from "../planner/isMessyPrompt.js";
 import { isMultiStepPrompt } from "../planner/isMultiStepPrompt.js";
 
@@ -18,6 +19,10 @@ const logger = createChildLogger("decision:hybrid");
 export function shouldUseHybrid(prompt: string, intent: Intent): boolean {
   // Trigger 1: Sensitive data that still needs cloud-grade reasoning
   if (intent.sensitive && intent.complexity === "complex") {
+    if (env.PRIVACY_MODE === "strict") {
+      logger.info({ trigger: "sensitive_complex", mode: "strict" }, "Hybrid disabled for sensitive prompt in strict mode");
+      return false;
+    }
     logger.info({ trigger: "sensitive_complex" }, "Hybrid eligible: sensitive + complex");
     return true;
   }

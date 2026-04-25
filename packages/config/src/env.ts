@@ -33,6 +33,13 @@ const envSchema = z.object({
   CLOUD_TIMEOUT_MS: z.coerce.number().default(12000),
   MAX_RETRIES: z.coerce.number().default(1),
   ALLOW_CLOUD_FALLBACK: z.string().transform((v) => v === "true").default("true"),
+
+  // PRIVACY (Phase 7)
+  PRIVACY_MODE: z.enum(["strict", "balanced"]).default("strict"),
+
+  // RATE LIMITING (Phase 7)
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(60),
 });
 
 export type Env = z.infer<typeof envSchema>;

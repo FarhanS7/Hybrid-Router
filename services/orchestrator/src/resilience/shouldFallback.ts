@@ -1,4 +1,5 @@
 import { Route, Intent } from "@har/shared";
+import { env } from "@har/config";
 
 /**
  * Determines if/where to fallback based on failure and privacy rules.
@@ -7,6 +8,10 @@ export function shouldFallback(
   primaryRoute: Route,
   intent: Intent
 ): Route | null {
+  if (!env.ALLOW_CLOUD_FALLBACK && primaryRoute === "LOCAL") {
+    return null;
+  }
+
   // If CLOUD fails, we can ALWAYS safely fallback to LOCAL (Privacy is maintained)
   if (primaryRoute === "CLOUD") {
     return "LOCAL";

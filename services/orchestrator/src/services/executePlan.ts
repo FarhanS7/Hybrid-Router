@@ -1,8 +1,11 @@
 import { createChildLogger } from "@har/logger";
 import type { ExecutionPlan, ExecutionStep, Intent, ProviderResult, HybridStepResult } from "@har/shared";
+import { env } from "@har/config";
 import { generateLocal } from "../clients/localLlmClient.js";
 import { generateCloud } from "../clients/cloudLlmClient.js";
 import { executeWithResilience, ResilientExecutionResult } from "../resilience/executeWithResilience.js";
+import { redactSensitiveText } from "../privacy/redactSensitiveText.js";
+import { validateNoSensitiveData } from "../privacy/validateNoSensitiveData.js";
 
 const logger = createChildLogger("executor:plan");
 
@@ -46,7 +49,22 @@ export async function executePlan(
   }
 
   if (plan.type === "CLOUD_ONLY") {
-    return executeSingleStep("CLOUD", prompt, intent);
+    // Also apply deterministic redaction to direct cloud prompts if intent is sensitive (safety net)
+    const finalPrompt = intent.sensitive ? redactSensitiveText(prompt) : prompt;
+    if (intent.sensitive && !validateNoSensitiveData(finalPrompt)) {
+        if (env.PRIVACY_MODE === "strict") {
+            const failResult: ProviderResult = {
+                provider: "CLOUD",
+                output: "HAR blocked this request: prompt contains sensitive data that could not be deterministically redacted.",
+                latencyMs: 0,
+                success: false,
+                errorType: "BAD_REQUEST",
+                errorMessage: "Privacy validation failure",
+            };
+            return { finalResult: failResult, stepResults: [failResult], fallbackUsed: false, totalLatencyMs: 0 };
+        }
+    }
+    return executeSingleStep("CLOUD", finalPrompt, intent);
   }
 
   // HYBRID execution
@@ -91,7 +109,7 @@ async function executeHybridPlan(
     const step = steps[i];
     const isLastStep = i === steps.length - 1;
 
-    const shapedPrompt = STEP_PROMPTS[step.step]
+    let shapedPrompt = STEP_PROMPTS[step.step]
       ? STEP_PROMPTS[step.step](currentInput)
       : currentInput;
 
@@ -100,6 +118,59 @@ async function executeHybridPlan(
       stepType: step.step,
       provider: step.provider,
     }, `Executing hybrid step ${i + 1}/${steps.length}`);
+
+    // Phase 7: Deterministic Privacy Layer
+    if (step.provider === "CLOUD") {
+      const sanitized = redactSensitiveText(shapedPrompt);
+      const isActuallySafe = validateNoSensitiveData(sanitized);
+
+      if (!isActuallySafe) {
+        logger.warn({ stepIndex: i, mode: env.PRIVACY_MODE }, "Deterministic validation failed before CLOUD step");
+        
+        if (env.PRIVACY_MODE === "strict") {
+          const failResult: ProviderResult = {
+            provider: "CLOUD",
+            output: "HAR blocked this hybrid step: sensitive data detected in cloud-bound payload (Strict Mode).",
+            latencyMs: 0,
+            success: false,
+            errorType: "BAD_REQUEST",
+            errorMessage: "Privacy validation failure",
+          };
+          stepResults.push(failResult);
+          hybridSteps.push({ step: step.step, provider: step.provider, success: false, latencyMs: 0, errorType: "PRIVACY_BLOCK" });
+          return {
+            finalResult: failResult,
+            stepResults,
+            hybridSteps,
+            fallbackUsed: anyFallbackUsed,
+            totalLatencyMs: totalLatency,
+          };
+        }
+        
+        // Balanced Mode: Fail safe by using the potentially non-sanitized input BUT logging a warning
+        // or we could force it back to local. For now, let's stick to the prompt's "fail safe or use LOCAL only"
+        // Let's implement "use LOCAL only" as the balanced fail-safe.
+        logger.info({ stepIndex: i }, "Balanced mode: failing safe by blocking cloud step");
+        const failResult: ProviderResult = {
+            provider: "CLOUD",
+            output: "HAR blocked this hybrid step: sensitive data detected in cloud-bound payload (Balanced Mode).",
+            latencyMs: 0,
+            success: false,
+            errorType: "BAD_REQUEST",
+            errorMessage: "Privacy validation failure",
+          };
+          stepResults.push(failResult);
+          hybridSteps.push({ step: step.step, provider: step.provider, success: false, latencyMs: 0, errorType: "PRIVACY_BLOCK" });
+          return {
+            finalResult: failResult,
+            stepResults,
+            hybridSteps,
+            fallbackUsed: anyFallbackUsed,
+            totalLatencyMs: totalLatency,
+          };
+      }
+      shapedPrompt = sanitized;
+    }
 
     if (step.provider === "CLOUD" && intent.sensitive && i === 0) {
       logger.error("Privacy violation: cannot send sensitive prompt to cloud as first step");
