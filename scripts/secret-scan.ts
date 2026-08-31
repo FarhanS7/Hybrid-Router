@@ -6,11 +6,12 @@ const SECRET_PATTERNS = [
   /AIza[0-9A-Za-z-_]{35}/g,
   /ghp_[a-zA-Z0-9]{36}/g,
   /xox[baprs]-[a-zA-Z0-9-]{10,}/g,
-  /\b(password|api_key|secret|credential)\s*[:=]\s*["'][^"']{4,}["']/gi
+  /\b(password|api_key|secret|credential)\s*[:=]\s*["'][^"']{4,}["']/gi,
+  /(?:^|\n)\s*(?:password|api_key|secret|token|credential)\s*=\s*[^\s"'#]{8,}/gim,
 ];
 
 const IGNORE_DIRS = ["node_modules", ".git", "dist", ".gemini", "artifacts"];
-const IGNORE_FILES = [".env.example", "package-lock.json", "secret-scan.ts", "sensitivityPatterns.ts"];
+const IGNORE_FILES = [".env", ".env.example", "package-lock.json", "secret-scan.ts", "sensitivityPatterns.ts"];
 
 function scanFile(filePath: string): string[] {
   const content = fs.readFileSync(filePath, "utf-8");

@@ -1,4 +1,5 @@
 import type { TaskType, Intent } from "@har/shared";
+import nlp from "compromise";
 
 // ─── Keyword dictionaries ────────────────────────────────
 
@@ -20,7 +21,6 @@ const TASK_KEYWORDS: Record<TaskType, string[]> = {
   other:        [],
 };
 
-const SIMPLE_TASKS: TaskType[] = ["greeting", "rewrite", "formatting", "summary"];
 const COMPLEX_TASKS: TaskType[] = ["architecture", "debugging", "reasoning"];
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -33,16 +33,13 @@ const PII_PATTERNS = {
   ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
 };
 
-function detectSensitivity(prompt: string): boolean {
-  const lower = prompt.toLowerCase();
-  
-  // 1. Keyword match
-  const hasKeyword = SENSITIVE_KEYWORDS.some((kw) => lower.includes(kw));
-  if (hasKeyword) return true;
-
-  // 2. Pattern match
-  const hasPattern = Object.values(PII_PATTERNS).some((regex) => regex.test(prompt));
-  return hasPattern;
+function detectProsePII(text: string): boolean {
+  try {
+    const doc = nlp(text);
+    return doc.people().length > 0 || doc.places().length > 0;
+  } catch {
+    return false;
+  }
 }
 
 function detectTaskType(prompt: string): { taskType: TaskType; confidence: number } {
@@ -79,16 +76,22 @@ function detectTaskType(prompt: string): { taskType: TaskType; confidence: numbe
   return { taskType: bestTask, confidence };
 }
 
-function detectComplexity(taskType: TaskType, prompt: string): "simple" | "medium" | "complex" {
-  if (COMPLEX_TASKS.includes(taskType)) return "complex";
-  if (SIMPLE_TASKS.includes(taskType)) return "simple";
-
-  // Length-based heuristic for ambiguous cases
-  const wordCount = prompt.split(/\s+/).length;
-  if (wordCount > 50) return "complex";
-  if (wordCount > 20) return "medium";
-
-  return "medium";
+function scoreComplexity(taskType: TaskType, wordCount: number): "simple" | "medium" | "complex" {
+  const taskWeights: Record<TaskType, number> = {
+    greeting: 0,
+    rewrite: 1,
+    formatting: 1,
+    summary: 2,
+    code_help: 3,
+    debugging: 4,
+    reasoning: 4,
+    architecture: 5,
+    other: 2,
+  };
+  const score = (taskWeights[taskType] ?? 2) + Math.floor(wordCount / 20);
+  if (score >= 7) return "complex";
+  if (score >= 3) return "medium";
+  return "simple";
 }
 
 // ─── Public API ──────────────────────────────────────────
@@ -113,12 +116,17 @@ export function classifyIntent(prompt: string): Intent {
     return regex.test(prompt);
   });
 
+  const hasProsePII = detectProsePII(prompt);
+
   if (hasPII) {
     sensitive = true;
     sensitivityReason = "Pattern-based PII detected (email/phone/SSN/card)";
   } else if (sensitiveKeyword) {
     sensitive = true;
     sensitivityReason = `Sensitive keyword detected: "${sensitiveKeyword}"`;
+  } else if (hasProsePII) {
+    sensitive = true;
+    sensitivityReason = "Prose-based PII detected (Person/Place)";
   }
 
   // 2. Detect Task Type (Priority-based)
@@ -148,7 +156,7 @@ export function classifyIntent(prompt: string): Intent {
 
   // 3. Determine Complexity
   const wordCount = prompt.split(/\s+/).length;
-  let complexity: "simple" | "medium" | "complex" = detectComplexity(taskType, prompt);
+  let complexity: "simple" | "medium" | "complex" = scoreComplexity(taskType, wordCount);
   
   // Complexity overrides
   if (wordCount > 100) complexity = "complex";
