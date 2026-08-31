@@ -8,7 +8,10 @@ dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  APP_API_KEY: z.string().default("har_dev_key"),
+  APP_API_KEY: z
+    .string()
+    .min(32, "APP_API_KEY must be at least 32 chars")
+    .default("har_dev_key_0123456789abcdef0123456789"),
 
   // PORTS
   GATEWAY_PORT: z.coerce.number().default(4000),

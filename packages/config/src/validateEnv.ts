@@ -25,6 +25,11 @@ export interface ValidationResult {
 export async function validateEnv(): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
+  // 0. Production Security Check
+  if (env.NODE_ENV === "production" && (env.APP_API_KEY === "har_dev_key" || env.APP_API_KEY === "har_dev_key_0123456789abcdef0123456789")) {
+    throw new Error("FATAL: Default API key detected in production. Set APP_API_KEY.");
+  }
+
   // 1. Check Ollama
   const ollamaOk = await isReachable(env.OLLAMA_BASE_URL);
   if (ollamaOk) {
@@ -53,7 +58,7 @@ export async function validateEnv(): Promise<ValidationResult[]> {
     results.push({
       service: "Cloud Provider",
       status: "warn",
-      message: "CLOUD_API_KEY is missing. Cloud routing and Hybrid features will be disabled.",
+      message: "CLOUD_API_KEY not set — cloud routing will fail immediately instead of timing out",
       tip: "Add CLOUD_API_KEY to your .env file to enable full hybrid capabilities.",
     });
   }

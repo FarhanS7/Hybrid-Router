@@ -1,5 +1,6 @@
-import { getFallbackIntent } from "../services/orchestrator/src/decision/fallbackIntent";
-import { routePrompt } from "../services/orchestrator/src/decision/routePrompt";
+import { getFallbackIntent } from "../services/orchestrator/src/decision/fallbackIntent.js";
+import { routePrompt } from "../services/orchestrator/src/decision/routePrompt.js";
+import { classifyIntent } from "../services/intent-service/src/classifiers/ruleBasedClassifier.js";
 
 const testCases = [
   // LOCAL
@@ -36,8 +37,16 @@ async function runTests() {
   let failed = 0;
 
   for (const tc of testCases) {
-    const intent = getFallbackIntent(tc.prompt);
-    const { route, reason } = routePrompt(intent, tc.prompt);
+    const fallbackIntent = getFallbackIntent(tc.prompt);
+    const realIntent = classifyIntent(tc.prompt);
+
+    const { route, reason } = routePrompt(fallbackIntent, tc.prompt);
+    const realResult = routePrompt(realIntent, tc.prompt);
+
+    if (route !== realResult.route) {
+      console.warn(`⚠️ Classifier divergence on: "${tc.prompt}"`);
+      console.warn(`   Fallback: ${route}, Real: ${realResult.route}`);
+    }
 
     const success = route === tc.expected;
     if (success) {
@@ -50,7 +59,7 @@ async function runTests() {
       failed++;
     }
     
-    if (tc.sensitive && route === "CLOUD") {
+    if (tc.sensitive && (route === "CLOUD" || realResult.route === "CLOUD")) {
         console.error("🚨 SECURITY VIOLATION: Sensitive prompt routed to CLOUD!");
         process.exit(1);
     }
