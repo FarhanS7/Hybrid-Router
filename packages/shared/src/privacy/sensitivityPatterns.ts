@@ -21,6 +21,7 @@ export const PII_PATTERNS: Record<string, RegExp> = {
   githubToken: /ghp_[a-zA-Z0-9]{36}/g,
   slackToken: /xox[baprs]-[a-zA-Z0-9-]{10,}/g,
   inlineSecret: /\b(password|token|api_key|secret|credential)\s*[:=]\s*["']?[a-zA-Z0-9!@#$%^&*()_+=-]{4,}["']?/gi,
+  dbUri: /[a-zA-Z0-9+]+:\/\/[^:\s]+:[^@\s]+@[^/\s]+/g,
 };
 
 // ─── Legacy shape (backward-compatible with orchestrator) ─
@@ -28,6 +29,7 @@ export const SENSITIVITY_PATTERNS = {
   email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
   phone: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
   creditCard: /\b(?:\d[ -]*?){13,16}\b/g,
+  dbUri: /[a-zA-Z0-9+]+:\/\/[^:\s]+:[^@\s]+@[^/\s]+/g,
   apiKey: {
     openai: /sk-[a-zA-Z0-9]{48}/g,
     google: /AIza[0-9A-Za-z-_]{35}/g,
