@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - APP_API_KEY=${APP_API_KEY:-har_dev_key_0123456789abcdef0123456789}
+      - GATEWAY_PORT=4000
+      - ORCHESTRATOR_PORT=4001
+    depends_on:
+      - orchestrator
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    expose:
+      - "4001"
+    environment:
+      - NODE_ENV=production
+      - ORCHESTRATOR_PORT=4001
+      - INTENT_SERVICE_PORT=4002
+      - LOCAL_LLM_PORT=4003
+      - CLOUD_LLM_PORT=4004
+      - PRIVACY_MODE=${PRIVACY_MODE:-strict}
+    depends_on:
+      - intent-service
+      - local-llm
+      - cloud-llm
+
+  intent-service:
+    build:
+      context: .
+      dockerfile: services/intent-service/Dockerfile
+    expose:
+      - "4002"
+    environment:
+      - NODE_ENV=production
+      - INTENT_SERVICE_PORT=4002
+
+  local-llm:
+    build:
+      context: .
+      dockerfile: services/local-llm/Dockerfile
+    expose:
+      - "4003"
+    environment:
+      - NODE_ENV=production
+      - LOCAL_LLM_PORT=4003
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+
+  cloud-llm:
+    build:
+      context: .
+      dockerfile: services/cloud-llm/Dockerfile
+    expose:
+      - "4004"
+    environment:
+      - NODE_ENV=production
+      - CLOUD_LLM_PORT=4004
+      - CLOUD_API_KEY=${CLOUD_API_KEY}
+      - CLOUD_PROVIDER=${CLOUD_PROVIDER:-gemini}
+      - CLOUD_MODEL=${CLOUD_MODEL:-gemini-2.0-flash}

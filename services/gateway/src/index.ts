@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import crypto from "crypto";
 import swaggerUi from "swagger-ui-express";
 import { env } from "@har/config";
 import { createChildLogger } from "@har/logger";
@@ -44,6 +45,45 @@ app.use((req, _res, next) => {
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "gateway" });
+});
+
+async function processAndCallback(jobId: string, prompt: string, callbackUrl: string) {
+  try {
+    const orchestratorUrl = `http://localhost:${env.ORCHESTRATOR_PORT}/orchestrate`;
+    const response = await fetch(orchestratorUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+
+    const result = response.ok ? await response.json() : { error: "Orchestration failed" };
+
+    await fetch(callbackUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId, status: response.ok ? "completed" : "failed", result }),
+    });
+    logger.info({ jobId, callbackUrl }, "Async job callback dispatched");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error({ jobId, callbackUrl, error: message }, "Async job callback failed");
+  }
+}
+
+// Async process prompt with webhook callback
+app.post("/process/async", authMiddleware, async (req, res) => {
+  const { prompt, callbackUrl } = req.body;
+
+  if (!prompt || typeof prompt !== "string" || !callbackUrl || typeof callbackUrl !== "string") {
+    res.status(400).json({ error: "Missing or invalid 'prompt' or 'callbackUrl' fields" });
+    return;
+  }
+
+  const jobId = crypto.randomUUID();
+  res.json({ jobId, status: "queued" });
+
+  // Fire and forget background execution
+  processAndCallback(jobId, prompt, callbackUrl);
 });
 
 // Process prompt — thin proxy to orchestrator
