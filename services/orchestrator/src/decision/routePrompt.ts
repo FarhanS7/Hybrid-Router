@@ -1,32 +1,42 @@
 import type { Intent, Route } from "@har/shared";
+import { env } from "@har/config";
 import { shouldUseHybrid } from "./shouldUseHybrid.js";
 
-/**
- * V2 deterministic routing policy.
- *
- * Priority order:
- *  1. Hybrid eligibility check (must be checked before privacy override)
- *  2. Privacy: sensitive prompts stay local (unless hybrid redaction is justified)
- *  3. Task-specific: reasoning/architecture/debugging go to cloud
- *  4. Complexity: complex prompts go to cloud
- *  5. Default: everything else stays local (cheap/fast path)
- */
 export interface RouteDecision {
   route: Route;
   reason: string;
 }
 
-/**
- * V2 deterministic routing policy.
- *
- * Priority order:
- *  1. Hybrid eligibility check (must be checked before privacy override)
- *  2. Privacy: sensitive prompts stay local (unless hybrid redaction is justified)
- *  3. Task-specific: reasoning/architecture/debugging go to cloud
- *  4. Complexity: complex prompts go to cloud
- *  5. Default: everything else stays local (cheap/fast path)
- */
+function routeCodeDomain(intent: Intent, prompt: string): RouteDecision {
+  // Sensitive code (contains API keys, credentials) → always LOCAL
+  if (intent.sensitive) {
+    return { route: "LOCAL", reason: "Code Domain: sensitive code/credentials restricted to local execution" };
+  }
+
+  // Simple autocomplete & snippets → LOCAL (speed matters most)
+  if (intent.taskType === "code_help" && intent.complexity === "simple") {
+    return { route: "LOCAL", reason: "Code Domain: simple autocomplete/snippet routed to local for speed" };
+  }
+
+  // Debugging & architecture → CLOUD (reasoning quality matters)
+  if (intent.taskType === "debugging" || intent.taskType === "architecture") {
+    return { route: "CLOUD", reason: `Code Domain: ${intent.taskType} requires cloud-grade reasoning` };
+  }
+
+  // Complex refactoring → CLOUD
+  if (intent.taskType === "rewrite" && intent.complexity === "complex") {
+    return { route: "CLOUD", reason: "Code Domain: complex code refactoring requires cloud reasoning" };
+  }
+
+  return { route: "LOCAL", reason: "Code Domain: defaulting to local provider" };
+}
+
 export function routePrompt(intent: Intent, prompt: string = ""): RouteDecision {
+  // Check code domain routing policy first if DOMAIN=code
+  if (env.DOMAIN === "code") {
+    return routeCodeDomain(intent, prompt);
+  }
+
   // Rule 0: Check hybrid eligibility first
   if (prompt && shouldUseHybrid(prompt, intent)) {
     return { 

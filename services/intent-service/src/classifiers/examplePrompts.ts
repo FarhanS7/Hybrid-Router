@@ -106,3 +106,45 @@ export const TASK_EXAMPLES: Record<TaskType, string[]> = {
   ],
   other: [],
 };
+
+export const CODE_DOMAIN_EXAMPLES: Record<TaskType, string[]> = {
+  greeting: [
+    "hello",
+    "hi assistant",
+  ],
+  code_help: [
+    "finish this function",
+    "complete this code",
+    "what comes next in this snippet?",
+    "fill in the implementation",
+    "write a utility function for array chunking",
+  ],
+  debugging: [
+    "why is this throwing a TypeError?",
+    "fix the bug in this function",
+    "this test is failing, why?",
+    "stack trace says null pointer",
+    "my async function isn't awaiting properly",
+  ],
+  reasoning: [
+    "what does this code do?",
+    "explain this algorithm",
+    "walk me through this function",
+    "how does this regex work?",
+    "explain how memory management works in Rust",
+  ],
+  rewrite: [
+    "how should I restructure this module?",
+    "this function is too long, split it",
+    "make this more readable",
+    "extract this into a reusable utility",
+    "refactor this code to use async await",
+  ],
+  architecture: [
+    "design an interface for this database access layer",
+    "architect a plugin architecture for this CLI tool",
+  ],
+  summary: [],
+  formatting: [],
+  other: [],
+};

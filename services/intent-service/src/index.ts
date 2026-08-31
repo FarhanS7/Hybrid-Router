@@ -6,7 +6,7 @@ import {
   initEmbeddingEngine,
   isEmbeddingEngineReady,
 } from "./classifiers/embeddingEngine.js";
-import { TASK_EXAMPLES } from "./classifiers/examplePrompts.js";
+import { TASK_EXAMPLES, CODE_DOMAIN_EXAMPLES } from "./classifiers/examplePrompts.js";
 import { logClassification } from "./classifiers/classificationLog.js";
 
 const logger = createChildLogger("intent-service");
@@ -59,9 +59,12 @@ app.post("/classify", async (req, res) => {
 });
 
 async function startServer() {
-  logger.info("Initializing embedding engine (all-MiniLM-L6-v2)...");
+  const domain = env.DOMAIN;
+  const examples = domain === "code" ? CODE_DOMAIN_EXAMPLES : TASK_EXAMPLES;
+
+  logger.info({ domain }, `Initializing embedding engine for domain: ${domain}...`);
   try {
-    await initEmbeddingEngine(TASK_EXAMPLES);
+    await initEmbeddingEngine(examples);
     logger.info("Embedding engine initialized successfully");
   } catch (err) {
     logger.warn({ error: String(err) }, "Failed to initialize embedding engine, fallback to keyword classifier");
