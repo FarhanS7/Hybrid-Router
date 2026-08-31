@@ -1,0 +1,21 @@
+{
+  "name": "create-har-app",
+  "version": "1.0.0",
+  "description": "Interactive CLI scaffolder for Hybrid AI Router projects",
+  "type": "module",
+  "bin": {
+    "create-har-app": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "typescript": "^5.3.3"
+  }
+}

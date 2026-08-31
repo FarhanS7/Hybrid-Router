@@ -1,9 +1,11 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
 import { env } from "@har/config";
 import { createChildLogger } from "@har/logger";
 import { rateLimit } from "./middleware/rateLimit.js";
+import { openApiSpec } from "./openapi.js";
 import type { HarResponse } from "@har/shared";
 
 const logger = createChildLogger("gateway");
@@ -17,6 +19,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(rateLimit);
+
+// OpenAPI Documentation endpoint
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
 // Authentication Middleware
 const authMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {

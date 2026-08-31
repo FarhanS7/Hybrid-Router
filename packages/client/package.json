@@ -1,0 +1,21 @@
+{
+  "name": "@har/client",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for Hybrid AI Router (HAR)",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@har/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "typescript": "^5.3.3"
+  }
+}
