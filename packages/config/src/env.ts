@@ -40,6 +40,9 @@ const envSchema = z.object({
   // PRIVACY (Phase 7)
   PRIVACY_MODE: z.enum(["strict", "balanced"]).default("strict"),
 
+  // DOMAIN MODE (V3)
+  DOMAIN: z.enum(["general", "code"]).default("general"),
+
   // RATE LIMITING (Phase 7)
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(60),
