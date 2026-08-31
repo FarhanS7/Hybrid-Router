@@ -22,6 +22,7 @@
     "test:routing": "tsx scripts/test-routing.ts",
     "test:resilience": "tsx scripts/test-resilience.ts",
     "eval:routing": "tsx scripts/eval-routing.ts",
+    "analyze:logs": "tsx scripts/analyze-logs.ts",
     "secret-scan": "tsx scripts/secret-scan.ts"
   },
   "workspaces": [

@@ -7,6 +7,7 @@ import {
   isEmbeddingEngineReady,
 } from "./classifiers/embeddingEngine.js";
 import { TASK_EXAMPLES } from "./classifiers/examplePrompts.js";
+import { logClassification } from "./classifiers/classificationLog.js";
 
 const logger = createChildLogger("intent-service");
 const app = express();
@@ -39,6 +40,16 @@ app.post("/classify", async (req, res) => {
   try {
     const intent = await classifyIntent(prompt);
     logger.info({ intent }, "Intent classified");
+
+    // Async classification logging for accuracy analytics
+    logClassification(
+      prompt,
+      intent.taskType,
+      intent.confidence,
+      intent.classifierMethod || "keyword-fallback",
+      intent.sensitive
+    ).catch(() => {});
+
     res.json(intent);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Classification failed";
