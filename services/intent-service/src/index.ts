@@ -2,6 +2,11 @@ import express from "express";
 import { env } from "@har/config";
 import { createChildLogger } from "@har/logger";
 import { classifyIntent } from "./classifiers/ruleBasedClassifier.js";
+import {
+  initEmbeddingEngine,
+  isEmbeddingEngineReady,
+} from "./classifiers/embeddingEngine.js";
+import { TASK_EXAMPLES } from "./classifiers/examplePrompts.js";
 
 const logger = createChildLogger("intent-service");
 const app = express();
@@ -9,13 +14,21 @@ const port = env.INTENT_SERVICE_PORT;
 
 app.use(express.json());
 
-// Health check
+// Health check with readiness gate
 app.get("/health", (_req, res) => {
+  if (!isEmbeddingEngineReady()) {
+    res.status(503).json({
+      status: "starting",
+      service: "intent-service",
+      detail: "Loading embedding model into memory",
+    });
+    return;
+  }
   res.json({ status: "ok", service: "intent-service" });
 });
 
-// Classify intent from prompt
-app.post("/classify", (req, res) => {
+// Classify intent from prompt (Async)
+app.post("/classify", async (req, res) => {
   const { prompt } = req.body;
 
   if (!prompt || typeof prompt !== "string") {
@@ -23,12 +36,29 @@ app.post("/classify", (req, res) => {
     return;
   }
 
-  const intent = classifyIntent(prompt);
-  logger.info({ intent }, "Intent classified");
-
-  res.json(intent);
+  try {
+    const intent = await classifyIntent(prompt);
+    logger.info({ intent }, "Intent classified");
+    res.json(intent);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Classification failed";
+    logger.error({ error: message }, "Classification error");
+    res.status(500).json({ error: message });
+  }
 });
 
-app.listen(port, "127.0.0.1", () => {
-  logger.info(`Intent service listening on 127.0.0.1:${port}`);
-});
+async function startServer() {
+  logger.info("Initializing embedding engine (all-MiniLM-L6-v2)...");
+  try {
+    await initEmbeddingEngine(TASK_EXAMPLES);
+    logger.info("Embedding engine initialized successfully");
+  } catch (err) {
+    logger.warn({ error: String(err) }, "Failed to initialize embedding engine, fallback to keyword classifier");
+  }
+
+  app.listen(port, "127.0.0.1", () => {
+    logger.info(`Intent service listening on 127.0.0.1:${port}`);
+  });
+}
+
+startServer();

@@ -1,31 +1,57 @@
 /**
  * Intent classifier coordinator (V3).
  *
- * This file is a thin coordinator that delegates to:
- *   - sensitivityClassifier.ts  → deterministic PII/privacy detection
- *   - keywordFallback.ts        → keyword-based task type classification
- *
- * In Commit 3, this will be upgraded to use the embedding engine
- * with keyword fallback only for low-confidence results.
- *
- * Separation rationale: sensitivity detection (must be deterministic)
- * and task classification (should be semantic) have opposite requirements.
+ * Combines:
+ *   - sensitivityClassifier.ts → deterministic PII/privacy detection
+ *   - embeddingEngine.ts       → semantic prompt similarity (all-MiniLM-L6-v2)
+ *   - keywordFallback.ts       → keyword matching fallback (when confidence < 0.55)
  */
 import type { Intent } from "@har/shared";
 import { classifySensitivity } from "./sensitivityClassifier.js";
+import {
+  classifyByEmbedding,
+  isEmbeddingEngineReady,
+} from "./embeddingEngine.js";
 import { keywordFallbackClassify, scoreComplexity } from "./keywordFallback.js";
 
-/**
- * Classify prompt intent for routing decisions.
- * Currently synchronous (keyword-only). Will become async in Commit 3
- * when embedding engine is added.
- */
-export function classifyIntent(prompt: string): Intent {
+const CONFIDENCE_THRESHOLD = 0.55;
+
+export async function classifyIntent(prompt: string): Promise<Intent> {
   // 1. Sensitivity is always deterministic — never probabilistic
   const { sensitive, reason: sensitivityReason } = classifySensitivity(prompt);
 
-  // 2. Task type via keyword matching (embedding upgrade in Commit 3)
-  const { taskType, confidence } = keywordFallbackClassify(prompt);
+  // 2. Semantic embedding classification with keyword fallback
+  let taskType: Intent["taskType"] = "other";
+  let confidence = 0.5;
+  let classifierMethod: "embedding" | "keyword-fallback" = "keyword-fallback";
+
+  if (isEmbeddingEngineReady()) {
+    try {
+      const embeddingRes = await classifyByEmbedding(prompt);
+      if (embeddingRes.confidence >= CONFIDENCE_THRESHOLD) {
+        taskType = embeddingRes.taskType;
+        confidence = embeddingRes.confidence;
+        classifierMethod = "embedding";
+      } else {
+        // Low embedding confidence — fall back to keyword classifier
+        const fallbackRes = keywordFallbackClassify(prompt);
+        taskType = fallbackRes.taskType;
+        confidence = fallbackRes.confidence;
+        classifierMethod = "keyword-fallback";
+      }
+    } catch {
+      const fallbackRes = keywordFallbackClassify(prompt);
+      taskType = fallbackRes.taskType;
+      confidence = fallbackRes.confidence;
+      classifierMethod = "keyword-fallback";
+    }
+  } else {
+    // Engine not ready yet (e.g. startup) — use keyword fallback
+    const fallbackRes = keywordFallbackClassify(prompt);
+    taskType = fallbackRes.taskType;
+    confidence = fallbackRes.confidence;
+    classifierMethod = "keyword-fallback";
+  }
 
   // 3. Complexity scoring
   const wordCount = prompt.split(/\s+/).length;
@@ -34,7 +60,7 @@ export function classifyIntent(prompt: string): Intent {
 
   // 4. Assemble reason string
   const reason = [
-    `Task: ${taskType} via keyword-fallback (score: ${confidence.toFixed(2)})`,
+    `Task: ${taskType} via ${classifierMethod} (conf: ${confidence.toFixed(2)})`,
     `Privacy: ${sensitivityReason}`,
     `Complexity: ${complexity} (${wordCount} words)`,
   ].join(" | ");
@@ -45,5 +71,7 @@ export function classifyIntent(prompt: string): Intent {
     taskType,
     confidence,
     reason,
+    classifierMethod,
+    classifierVersion: "v3-embedding",
   };
 }
