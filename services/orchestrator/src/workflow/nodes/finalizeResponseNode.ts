@@ -47,6 +47,8 @@ export async function finalizeResponseNode(state: HarWorkflowStateType) {
     latencyMs: state.providerResult.latencyMs,
     fallbackUsed: !!state.fallbackUsed,
     sensitive: !!state.intent?.sensitive,
+    classifierMethod: state.intent?.classifierMethod,
+    classifierConfidence: state.intent?.confidence,
     planType,
     success: state.providerResult.success,
   }, "Request complete");

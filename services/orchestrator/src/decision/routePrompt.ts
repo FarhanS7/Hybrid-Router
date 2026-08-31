@@ -35,11 +35,20 @@ export function routePrompt(intent: Intent, prompt: string = ""): RouteDecision 
     };
   }
 
-  // Rule 1: Privacy dominates
+  // Rule 1: Privacy dominates (unconditional local restriction)
   if (intent.sensitive) {
     return { 
       route: "LOCAL", 
       reason: "Privacy: sensitive prompt restricted to local execution" 
+    };
+  }
+
+  // Rule 1.5: Confidence gate (uncertain embedding classifications default to LOCAL)
+  const LOW_CONFIDENCE_THRESHOLD = 0.52;
+  if (intent.confidence < LOW_CONFIDENCE_THRESHOLD && intent.classifierMethod === "embedding") {
+    return {
+      route: "LOCAL",
+      reason: `Confidence: low classifier confidence (${intent.confidence.toFixed(2)}) — defaulting to local for safety`,
     };
   }
 
