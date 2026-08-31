@@ -33,7 +33,7 @@ export async function initEmbeddingEngine(examples: Record<string, string[]>): P
   for (const [taskType, prompts] of Object.entries(examples)) {
     const vectors: EmbeddingVector[] = [];
     for (const prompt of prompts) {
-      const output = await embedder(prompt, { pooling: "mean", normalize: true });
+      const output = (await embedder(prompt, { pooling: "mean", normalize: true })) as unknown as { data: Float32Array };
       vectors.push(Array.from(output.data));
     }
     exampleEmbeddings.set(taskType as TaskType, vectors);
@@ -50,7 +50,7 @@ export async function classifyByEmbedding(prompt: string): Promise<EmbeddingClas
     throw new Error("Embedding engine is not initialized");
   }
 
-  const output = await embedder(prompt, { pooling: "mean", normalize: true });
+  const output = (await embedder(prompt, { pooling: "mean", normalize: true })) as unknown as { data: Float32Array };
   const promptVector = Array.from(output.data) as EmbeddingVector;
 
   let bestTask: TaskType = "other";

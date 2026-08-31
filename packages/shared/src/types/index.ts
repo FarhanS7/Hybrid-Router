@@ -19,6 +19,8 @@ export interface Intent {
   taskType: TaskType;
   confidence: number;
   reason?: string;
+  classifierMethod?: "embedding" | "keyword-fallback";
+  classifierVersion?: string;
 }
 
 // ─── Error ───────────────────────────────────────────────
