@@ -40,17 +40,16 @@ export async function finalizeResponseNode(state: HarWorkflowStateType) {
     },
   };
 
-  // Log resilience and hybrid details
-  if (state.fallbackUsed || !state.providerResult.success || planType === "HYBRID") {
-    logger.info({
-      planType,
-      fallbackUsed: state.fallbackUsed,
-      retryCount: state.retryCount,
-      success: state.providerResult.success,
-      stepsExecuted: state.stepResults?.length,
-      errorType: state.errorType,
-    }, "Finalizing with execution metadata");
-  }
+  // Log structured request completion metrics for Axiom / Logtail observability
+  logger.info({
+    route: state.route,
+    finalProvider: state.providerResult.provider,
+    latencyMs: state.providerResult.latencyMs,
+    fallbackUsed: !!state.fallbackUsed,
+    sensitive: !!state.intent?.sensitive,
+    planType,
+    success: state.providerResult.success,
+  }, "Request complete");
 
   return {
     finalResponse,

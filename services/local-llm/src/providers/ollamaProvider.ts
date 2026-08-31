@@ -16,6 +16,20 @@ interface OllamaGenerateResponse {
  */
 export async function generateWithOllama(prompt: string): Promise<ProviderResult> {
   const start = Date.now();
+
+  if (!env.OLLAMA_BASE_URL || env.OLLAMA_BASE_URL === "disabled") {
+    logger.warn("OLLAMA_BASE_URL is unset or disabled for cloud deployment");
+    return {
+      provider: "LOCAL",
+      model: env.OLLAMA_MODEL,
+      output: "",
+      latencyMs: 0,
+      success: false,
+      errorType: "LOCAL_UNAVAILABLE",
+      errorMessage: "Local LLM provider (Ollama) is unconfigured or disabled in this environment.",
+    };
+  }
+
   const url = `${env.OLLAMA_BASE_URL}/api/generate`;
 
   try {
